@@ -30,7 +30,6 @@ public class CabinPressureSensor implements Runnable {
 
     private Channel sensorsChannel;
     private static volatile boolean pause = false;
-
     private String state = "normal";
 
 
@@ -77,6 +76,18 @@ public class CabinPressureSensor implements Runnable {
         }
     }
 
+    public void generateLandingReadings() {
+        int reading = generateDecreasingPressureChange();
+        publishMessage(Integer.toString(reading));
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(AltitudeSensor.class.getName()).log(Level.SEVERE, null, ex);
+            state = "stopping";
+        }
+
+    }
+
     public double generateRandomPressureChange() {
         // Set the minimum and maximum normal cabin pressure changes
         double minPressureChange = -1.5;
@@ -94,6 +105,12 @@ public class CabinPressureSensor implements Runnable {
         newPressure = Math.min(12.3, newPressure);
 
         return newPressure;
+    }
+
+    public int generateDecreasingPressureChange() {
+        int altitudeDecrease = (new Random()).nextInt(4001);
+        //altitude-=altitudeDecrease;
+        return 0;
     }
 
     public void publishMessage(String msg) {

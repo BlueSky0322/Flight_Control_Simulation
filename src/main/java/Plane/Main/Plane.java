@@ -51,6 +51,8 @@ public class Plane {
     public static int currentDirection = 90; // normal direction in degrees (eastward)
     public static WeatherCondition currentWeather = WeatherCondition.CLEAR_SKY;// normal weather condition
 
+    public static final int LANDING_DURATION = 10;
+
     public Plane() {
 
     }
@@ -70,7 +72,7 @@ public class Plane {
 
         try {
 
-            Thread.sleep(10000);
+            Thread.sleep(LANDING_DURATION * 1000);
             stop();
         } catch (InterruptedException ex) {
             Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);

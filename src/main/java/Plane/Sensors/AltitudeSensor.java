@@ -7,6 +7,7 @@ package Plane.Sensors;
 import Plane.Connections.ConnectionManager;
 import Plane.Connections.Exchanges;
 import Plane.Connections.RoutingKeys;
+import Plane.Main.Plane;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -26,6 +27,8 @@ public class AltitudeSensor implements Runnable {
     private String state = "normal";
 
     private static int altitude = 23000;
+
+    private static final int OPTIMAL_ALTITUDE = 23000;
 
     private static volatile boolean pause = false;
 
@@ -108,8 +111,8 @@ public class AltitudeSensor implements Runnable {
      * @return
      */
     public int generateDecreasingAltitude() {
-        int altitudeDecrease = (new Random()).nextInt(4001);
-        altitude-=altitudeDecrease;
+
+        altitude -= OPTIMAL_ALTITUDE / (Plane.LANDING_DURATION-3);
         return Integer.max(0, altitude);
     }
 
