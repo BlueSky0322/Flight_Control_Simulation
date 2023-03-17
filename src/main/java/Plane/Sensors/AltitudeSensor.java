@@ -7,18 +7,12 @@ package Plane.Sensors;
 import Plane.Connections.ConnectionManager;
 import Plane.Connections.Exchanges;
 import Plane.Connections.RoutingKeys;
-import Plane.Connections.SensorQueues;
-import Plane.FC.FlightController;
-import Plane.Main.Plane;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 import java.io.IOException;
 import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,9 +22,11 @@ import java.util.logging.Logger;
  */
 public class AltitudeSensor implements Runnable {
 
-    private ConnectionFactory factory;
-    private Connection connection;
     private Channel sensorsChannel;
+    private String state = "normal";
+
+
+
     private static volatile boolean pause = false;
 
     public static void pauseSensor() {
@@ -44,31 +40,18 @@ public class AltitudeSensor implements Runnable {
     }
 
     public AltitudeSensor() {
-        try {
-            factory = new ConnectionFactory();
-            connection = factory.newConnection();
-            sensorsChannel = connection.createChannel();
-            //sensorsChannel.exchangeDeclare(Exchanges.SENSOR.getName(), "direct", true);
-            ConnectionManager.purgeQueues(sensorsChannel, sensorsChannel);
-            System.out.println("[*] [SENSOR-AS] ALTITUDE SENSOR: Started successfully.");
-//            ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-//            executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+        sensorsChannel = SensorUtils.createChannel();
+        System.out.println("[*] [SENSOR-AS] ALTITUDE SENSOR: Started successfully.");
 
-        } catch (IOException | TimeoutException ex) {
-            Logger.getLogger(AltitudeSensor.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
 
-    String mode = "normal";
 
     @Override
     public void run() {
-        System.out.println("[SENSOR-AS] Interrupt :" + Thread.currentThread().isInterrupted());
-        System.out.println("[SENSOR-AS] ID :" + Thread.currentThread().getId());
         while (!Thread.currentThread().isInterrupted()) {
-            if (mode.equals("normal")) {
+            if (state.equals("normal")) {
                 generateReadings();
-            } else if (mode.equals("landing")) {
+            } else if (state.equals("landing")) {
                 generateLandingReadings();
             } else {
                 Thread.currentThread().interrupt();
@@ -82,7 +65,7 @@ public class AltitudeSensor implements Runnable {
             Thread.sleep(1000);
         } catch (InterruptedException ex) {
             Logger.getLogger(AltitudeSensor.class.getName()).log(Level.SEVERE, null, ex);
-            mode = "stopping";
+            state = "stopping";
         }
 
     }
@@ -95,10 +78,12 @@ public class AltitudeSensor implements Runnable {
                 Thread.sleep(1000);
             } catch (InterruptedException ex) {
                 Logger.getLogger(AltitudeSensor.class.getName()).log(Level.SEVERE, null, ex);
-                mode = "landing";
+                state = "landing";
             }
         }
     }
+
+
 
     public int generateRandomAltitude() {
         // Generate a random altitude difference between -2000 and 2000 feet

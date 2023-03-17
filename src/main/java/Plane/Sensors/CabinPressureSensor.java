@@ -28,10 +28,11 @@ import java.util.logging.Logger;
  */
 public class CabinPressureSensor implements Runnable {
 
-    private ConnectionFactory factory;
-    private Connection connection;
     private Channel sensorsChannel;
     private static volatile boolean pause = false;
+
+    private String state = "normal";
+
 
     public static void pauseSensor() {
         pause = true;
@@ -44,23 +45,24 @@ public class CabinPressureSensor implements Runnable {
     }
 
     public CabinPressureSensor() {
-        try {
-            factory = new ConnectionFactory();
-            connection = factory.newConnection();
-            sensorsChannel = connection.createChannel();
-            //sensorsChannel.exchangeDeclare(Exchanges.SENSOR.getName(), "direct",true);
-            System.out.println(Thread.currentThread().getId());
-            System.out.println("[*] [SENSOR-CPS] CABIN PRESSURE SENSOR: Started successfully.");
-        } catch (IOException | TimeoutException ex) {
-            Logger.getLogger(CabinPressureSensor.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+
+        sensorsChannel = SensorUtils.createChannel();
+        System.out.println("[*] [SENSOR-CPS] CABIN PRESSURE SENSOR: Started successfully.");
     }
+
+
 
     @Override
     public void run() {
-        generateReadings();
+        while (!Thread.currentThread().isInterrupted()) {
+            if (state.equals("normal")) {
+                generateReadings();
+            } else if (state.equals("landing")) {
+                //generateLandingReadings();
+            } else {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     public void generateReadings() {
