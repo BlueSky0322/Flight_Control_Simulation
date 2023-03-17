@@ -28,10 +28,10 @@ import java.util.logging.Logger;
  */
 public class WeatherSensor implements Runnable {
 
-    private ConnectionFactory factory;
-    private Connection connection;
     private Channel sensorsChannel;
     private static volatile boolean pause = false;
+
+    private static String state = "normal";
 
     public static void pauseSensor() {
         pause = true;
@@ -44,22 +44,31 @@ public class WeatherSensor implements Runnable {
     }
 
     public WeatherSensor() {
-        try {
-            factory = new ConnectionFactory();
-            connection = factory.newConnection();
-            sensorsChannel = connection.createChannel();
-            //sensorsChannel.exchangeDeclare(Exchanges.SENSOR.getName(), "direct", true);
-            System.out.println("[*] [SENSOR-WS] WEATHER SENSOR: Started successfully.");
-        } catch (IOException | TimeoutException ex) {
-            Logger.getLogger(WeatherSensor.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+        sensorsChannel = SensorUtils.createChannel();
+        System.out.println("[*] [SENSOR-AS] ALTITUDE SENSOR: Started successfully.");
     }
 
     @Override
     public void run() {
-        generateReadings();
+        while (!Thread.currentThread().isInterrupted()) {
+            if (state.equals("normal")) {
+                generateReadings();
+            } else if (state.equals("landing")) {
+                generateLandingReadings();
+            } else {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    private void generateLandingReadings() {
+
+        publishMessage(Integer.toString(WeatherCondition.CLEAR_SKY.getCode()));
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            state = "stopping";
+        }
     }
 
     public void generateReadings() {
@@ -69,14 +78,12 @@ public class WeatherSensor implements Runnable {
             WeatherCondition currentWeatherCondition = Plane.getCurrentWeather();
             if (newCondition != currentWeatherCondition) {
                 currentWeatherCondition = newCondition;
-                //plane.setCurrentWeather(currentWeatherCondition);
                 publishMessage(Integer.toString(currentWeatherCondition.getCode()));
             }
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ex) {
-                System.out.println("Inner exception");
-                Logger.getLogger(WeatherSensor.class.getName()).log(Level.SEVERE, null, ex);
+                state = "landing";
             }
         }
     }
