@@ -66,7 +66,7 @@ public class Plane {
             Thread.sleep(10000);
         } catch (InterruptedException ex) {
             Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
-            System.out.println("Outer exception");
+            System.out.println("plane is landing");
         }
         stop();
 
@@ -76,7 +76,7 @@ public class Plane {
             stop();
         } catch (InterruptedException ex) {
             Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
-            System.out.println("Outer exception");
+            System.out.println("plane is stopping");
         }
 
     }
@@ -84,7 +84,7 @@ public class Plane {
     public void start() {
 
         Plane.altThread = new Thread(new AltitudeSensor());
-//        Plane.cpsThread = new Thread(new CabinPressureSensor());
+        Plane.cpsThread = new Thread(new CabinPressureSensor());
 //        Plane.sdsThread = new Thread(new SpeedDirectionSensor());
 //        Plane.wsThread = new Thread(new WeatherSensor());
 //        Plane.waThread = new Thread(new WingActuator());
@@ -94,7 +94,7 @@ public class Plane {
 //        Plane.fcThread = new Thread(new FlightController());
 
         Plane.altThread.start();
-//        Plane.cpsThread.start();
+        Plane.cpsThread.start();
 //        Plane.sdsThread.start();
 //        Plane.wsThread.start();
 //        Plane.waThread.start();
@@ -106,7 +106,7 @@ public class Plane {
 
     public static void stop() {
         Plane.altThread.interrupt();
-//        Plane.cpsThread.interrupt();
+        Plane.cpsThread.interrupt();
 //        Plane.sdsThread.interrupt();
 //        Plane.wsThread.interrupt();
 //        Plane.waThread.interrupt();

@@ -68,7 +68,6 @@ public class AltitudeSensor implements Runnable {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException ex) {
-            Logger.getLogger(AltitudeSensor.class.getName()).log(Level.SEVERE, null, ex);
             state = "stopping";
         }
 
@@ -81,7 +80,6 @@ public class AltitudeSensor implements Runnable {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ex) {
-                Logger.getLogger(AltitudeSensor.class.getName()).log(Level.SEVERE, null, ex);
                 state = "landing";
             }
         }
