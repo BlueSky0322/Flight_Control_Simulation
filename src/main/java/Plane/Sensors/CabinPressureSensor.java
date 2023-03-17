@@ -31,6 +31,10 @@ public class CabinPressureSensor implements Runnable {
     private Channel sensorsChannel;
     private static volatile boolean pause = false;
     private String state = "normal";
+    private static final double OPTIMAL_PRESSURE = 8.9;
+
+    private static final double MIN_PRESSURE = 4.3;
+    private static double pressure = 8.9;
 
 
     public static void pauseSensor() {
@@ -50,14 +54,13 @@ public class CabinPressureSensor implements Runnable {
     }
 
 
-
     @Override
     public void run() {
         while (!Thread.currentThread().isInterrupted()) {
             if (state.equals("normal")) {
                 generateReadings();
             } else if (state.equals("landing")) {
-                //generateLandingReadings();
+                generateLandingReadings();
             } else {
                 Thread.currentThread().interrupt();
             }
@@ -71,18 +74,17 @@ public class CabinPressureSensor implements Runnable {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ex) {
-                Logger.getLogger(CabinPressureSensor.class.getName()).log(Level.SEVERE, null, ex);
+                state = "landing";
             }
         }
     }
 
     public void generateLandingReadings() {
-        int reading = generateDecreasingPressureChange();
-        publishMessage(Integer.toString(reading));
+        double reading = generateDecreasingPressureChange();
+        publishMessage(Double.toString(reading));
         try {
             Thread.sleep(1000);
         } catch (InterruptedException ex) {
-            Logger.getLogger(AltitudeSensor.class.getName()).log(Level.SEVERE, null, ex);
             state = "stopping";
         }
 
@@ -92,25 +94,24 @@ public class CabinPressureSensor implements Runnable {
         // Set the minimum and maximum normal cabin pressure changes
         double minPressureChange = -1.5;
         double maxPressureChange = 1.5;
-        double standardPressure = 8.9;
         // Generate a random double value between the minimum and maximum values with one decimal point
         Random r = new Random();
         double randomPressureChange = Math.round((minPressureChange + (maxPressureChange - minPressureChange) * r.nextDouble()) * 10.0) / 10.0;
 
         // Add the random pressure change to the current pressure
-        double newPressure = standardPressure + randomPressureChange;
+        pressure += randomPressureChange;
 
         // Ensure that the new pressure is within the valid range of 4.3 to 12.3 psi
-        newPressure = Math.max(4.3, newPressure);
-        newPressure = Math.min(12.3, newPressure);
+        pressure = Math.max(4.3, pressure);
+        pressure = Math.min(12.3, pressure);
 
-        return newPressure;
+        return pressure;
     }
 
-    public int generateDecreasingPressureChange() {
-        int altitudeDecrease = (new Random()).nextInt(4001);
-        //altitude-=altitudeDecrease;
-        return 0;
+    public double generateDecreasingPressureChange() {
+        double pressureDecrease = (new Random()).nextDouble(OPTIMAL_PRESSURE - MIN_PRESSURE) / (Plane.LANDING_DURATION - 3);
+        pressure -= pressureDecrease;
+        return Double.max(MIN_PRESSURE, pressure);
     }
 
     public void publishMessage(String msg) {

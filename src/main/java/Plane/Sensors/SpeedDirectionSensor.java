@@ -12,6 +12,7 @@ import Plane.Main.Plane;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.Executors;
@@ -22,15 +23,21 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author ryann
  */
 public class SpeedDirectionSensor implements Runnable {
 
-    private ConnectionFactory factory;
-    private Connection connection;
     private Channel sensorsChannel;
+    private String state = "normal";
     private static volatile boolean pause = false;
+
+    private static int speed;
+
+    private static int direction;
+
+    private static final int MAX_SPEED = 570;
+
+    private static final int MIN_SPEED = 130;
 
     public static void pauseSensor() {
         pause = true;
@@ -43,23 +50,35 @@ public class SpeedDirectionSensor implements Runnable {
     }
 
     public SpeedDirectionSensor() {
-        try {
-            factory = new ConnectionFactory();
-            connection = factory.newConnection();
-            sensorsChannel = connection.createChannel();
-            //sensorsChannel.exchangeDeclare(Exchanges.SENSOR.getName(), "direct", true);
-            System.out.println("[*] [SENSOR-SDS] SPEED DIRECTION SENSOR: Started successfully.");
-        } catch (IOException | TimeoutException ex) {
-            Logger.getLogger(SpeedDirectionSensor.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+        sensorsChannel = SensorUtils.createChannel();
+        System.out.println("[*] [SENSOR-SDS] SPEED DIRECTION SENSOR: Started successfully.");
+
     }
 
     @Override
     public void run() {
-        generateReadings();
+        while (!Thread.currentThread().isInterrupted()) {
+            if (state.equals("normal")) {
+                generateReadings();
+            } else if (state.equals("landing")) {
+                generateLandingReadings();
+            } else {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
+
+    private void generateLandingReadings() {
+        int speedReading = generateDecreasingSpeed();
+        String reading = speedReading + ":" + direction;
+        publishMessage(reading);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            state = "stopping";
+        }
+    }
+
 
     public void generateReadings() {
         if (!pause) {
@@ -70,7 +89,7 @@ public class SpeedDirectionSensor implements Runnable {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ex) {
-                Logger.getLogger(SpeedDirectionSensor.class.getName()).log(Level.SEVERE, null, ex);
+                state = "landing";
             }
         }
     }
@@ -85,31 +104,39 @@ public class SpeedDirectionSensor implements Runnable {
         int deviation = r.nextInt(maxDeviation - minDeviation + 1) + minDeviation;
 
         // Add the deviation to the current direction
-        int newDirection = standardDirection + deviation;
+        direction = standardDirection + deviation;
 
         // Ensure that the new direction is within the valid range of -180 to 180 degrees
-        newDirection = Math.max(Math.min(newDirection, 130), 50);
+        direction = Math.max(Math.min(direction, 130), 50);
 
-        return newDirection;
+        return direction;
     }
 
     public int generateRandomSpeedChange() {
         // Set the minimum and maximum normal speed changes for a commercial airliner
         int minSpeedChange = -25; // knots
         int maxSpeedChange = 25; // knots
-        int standardSpeed = 350;
         // Generate a random double value between the minimum and maximum values with one decimal point
         Random r = new Random();
         int randomSpeedChange = r.nextInt(maxSpeedChange - minSpeedChange + 1) + minSpeedChange;
 
         // Add the random speed change to the current speed
-        int newSpeed = standardSpeed + (int) randomSpeedChange;
+        speed += randomSpeedChange;
 
         // Ensure that the new speed is within the valid range of 130 to 570 knots
-        newSpeed = Math.max(130, newSpeed);
-        newSpeed = Math.min(570, newSpeed);
+        speed = Math.max(MIN_SPEED, speed);
+        speed = Math.min(MAX_SPEED, speed);
 
-        return newSpeed;
+        return speed;
+    }
+
+    /**
+     * Generates a decreasing speed for landing purposes
+     */
+    private int generateDecreasingSpeed() {
+        speed -= (new Random()).nextInt(MAX_SPEED) / (Plane.LANDING_DURATION - 3);
+        speed = Math.max(0, speed);
+        return speed;
     }
 
     public void publishMessage(String msg) {
