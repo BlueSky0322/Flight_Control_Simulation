@@ -31,6 +31,7 @@ public class OxygenMaskActuator implements Runnable {
     private Channel actuatorChannel;
     private Channel emergencyChannel;
     private static volatile boolean cabinPressureLossEvent = false;
+    private static String state = "normal";
 
     public static void deployOxygenMasks() {
         cabinPressureLossEvent = true;
@@ -59,15 +60,28 @@ public class OxygenMaskActuator implements Runnable {
 
     @Override
     public void run() {
-        if (cabinPressureLossEvent) {
-            receiveReading();
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(OxygenMaskActuator.class.getName()).log(Level.SEVERE, null, ex);
+        while (!Thread.currentThread().isInterrupted()) {
+            if (state.equals("normal")) {
+                if (cabinPressureLossEvent) {
+                    receiveReading();
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(OxygenMaskActuator.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    OxygenMask.setIsDeployed(false);
+                }
+            } else if (state.equals("landing")) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ex) {
+                    state = "stopping";
+                }
+            } else {
+                Thread.currentThread().interrupt();
             }
-           OxygenMask.setIsDeployed(false);
         }
+
     }
 
     public void receiveReading() {

@@ -9,6 +9,7 @@ import Plane.Connections.ActuatorQueues;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -18,7 +19,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author ryann
  */
 public class EngineActuator implements Runnable {
@@ -28,6 +28,7 @@ public class EngineActuator implements Runnable {
     private Channel actuatorChannel;
     private Channel emergencyChannel;
     private static volatile boolean cabinPressureLossEvent = false;
+    private static String state = "normal";
 
     public static void pauseActuator() {
         cabinPressureLossEvent = true;
@@ -57,15 +58,28 @@ public class EngineActuator implements Runnable {
 
     @Override
     public void run() {
-        if (!cabinPressureLossEvent) {
-            receiveReading();
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(EngineActuator.class.getName()).log(Level.SEVERE, null, ex);
+        while (!Thread.currentThread().isInterrupted()) {
+            if (state.equals("normal")) {
+                if (!cabinPressureLossEvent) {
+                    receiveReading();
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ex) {
+                        state = "landing";
+                    }
+                }
+                receiveEmergencyReading();
+            } else if (state.equals("landing")) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ex) {
+                    state = "stopping";
+                }
+            } else {
+                Thread.currentThread().interrupt();
             }
         }
-        receiveEmergencyReading();
+
     }
 
     public void handleReading(int throttleCorrection) {
