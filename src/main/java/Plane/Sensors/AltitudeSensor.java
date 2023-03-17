@@ -109,8 +109,8 @@ public class AltitudeSensor implements Runnable {
      */
     public int generateDecreasingAltitude() {
         int altitudeDecrease = (new Random()).nextInt(4001);
-
-        return Integer.max(0, altitude - altitudeDecrease);
+        altitude-=altitudeDecrease;
+        return Integer.max(0, altitude);
     }
 
     public void publishMessage(String msg) {
