@@ -21,6 +21,7 @@ import Plane.Utils.WeatherCondition;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.Executors;
@@ -31,7 +32,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author ryann
  */
 public class FlightController implements Runnable {
@@ -41,7 +41,9 @@ public class FlightController implements Runnable {
     private Channel sensorsChannel;
     private Channel actuatorsChannel;
     private Channel emergencyChannel;
-//    private final CabinPressureSensor cps;
+
+    private static String state = "normal";
+    //    private final CabinPressureSensor cps;
 //    private final SpeedDirectionSensor sds;
 //    private final WeatherSensor ws;
     private volatile boolean emergencyEvent = false;
@@ -72,7 +74,7 @@ public class FlightController implements Runnable {
         System.out.println("[x] [CONTROL-FC] EMERGENCY PROTOCOL DISABLED!");
     }
 
-//    public FlightController(Plane plane, AltitudeSensor alt, CabinPressureSensor cps, SpeedDirectionSensor sds, WeatherSensor ws) {
+    //    public FlightController(Plane plane, AltitudeSensor alt, CabinPressureSensor cps, SpeedDirectionSensor sds, WeatherSensor ws) {
 //        this.plane = plane;
 //        this.alt = alt;
 //        this.cps = cps;
@@ -84,8 +86,8 @@ public class FlightController implements Runnable {
     public FlightController() {
         try {
             factory = new ConnectionFactory();
-            connection = factory.newConnection();          
-            
+            connection = factory.newConnection();
+
             //ConnectionManager.resetSensorQueues(sensorsChannel);
             sensorsChannel = connection.createChannel();
             ConnectionManager.declareExchange(Exchanges.SENSOR.getName(), sensorsChannel);
@@ -103,28 +105,43 @@ public class FlightController implements Runnable {
         } catch (IOException | TimeoutException ex) {
             Logger.getLogger(FlightController.class.getName()).log(Level.SEVERE, null, ex);
         }
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
-        //executor.scheduleAtFixedRate(receiveAltitudeReading(), 0, 1, TimeUnit.SECONDS);
     }
 
     @Override
     public void run() {
 
-        if (!emergencyEvent) {
-            receiveAltitudeReading();
-            receiveCabinPressureReading();
-            receiveSpeedDirectionReading();
-            receiveWeatherReading();
-            processAltitudeOutOfRange(Plane.currentAltitude);
-            processDirectionDeviation(Plane.currentDirection);
-            processSpeedDeviation(Plane.currentSpeed, Plane.currentAltitude);
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(FlightController.class.getName()).log(Level.SEVERE, null, ex);
+        while (!Thread.currentThread().isInterrupted()) {
+            if (state.equals("normal")) {
+                if (!emergencyEvent) {
+                    receiveAltitudeReading();
+                    receiveCabinPressureReading();
+                    receiveSpeedDirectionReading();
+                    receiveWeatherReading();
+                    processAltitudeOutOfRange(Plane.currentAltitude);
+                    processDirectionDeviation(Plane.currentDirection);
+                    processSpeedDeviation(Plane.currentSpeed, Plane.currentAltitude);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ex) {
+                        state = "landing";
+                        deployLandingGear();
+                    }
+                }
+            } else if (state.equals("landing")) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ex) {
+                    state = "stopping";
+                }
+            } else {
+                Thread.currentThread().interrupt();
             }
         }
+
+    }
+
+    public void deployLandingGear() {
+        System.out.println("==============DEPLOYING LANDING GEAR==================");
     }
 
     public void pauseReadings() {
@@ -172,7 +189,7 @@ public class FlightController implements Runnable {
             emergencyChannel.basicPublish(Exchanges.EMERGENCY.getName(), RoutingKeys.TAIL_FLAPS_TEMP.getKey(), null, targetTACorrection.getBytes());
             emergencyChannel.basicPublish(Exchanges.EMERGENCY.getName(), RoutingKeys.ENGINES_TEMP.getKey(), null, targetEACorrection.getBytes());
             emergencyChannel.basicPublish(Exchanges.EMERGENCY.getName(), RoutingKeys.OXYGEN_MASKS.getKey(), null, deployOxygenMasks.getBytes());
-            
+
             //emergencyChannel.close();
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class.getName()).log(Level.SEVERE, null, ex);
@@ -255,7 +272,7 @@ public class FlightController implements Runnable {
     /*
         PROCESS READINGS
      */
-    
+
     public void processAltitudeOutOfRange(int currentAltitude) {
         int safeAltitude = 33000;
         int altitudeMargin = 400;

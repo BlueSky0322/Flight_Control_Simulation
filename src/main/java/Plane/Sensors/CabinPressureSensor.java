@@ -34,6 +34,8 @@ public class CabinPressureSensor implements Runnable {
     private static final double OPTIMAL_PRESSURE = 8.9;
 
     private static final double MIN_PRESSURE = 4.3;
+
+    private static final double MAX_PRESSURE = 12.3;
     private static double pressure = 8.9;
 
 
@@ -109,7 +111,7 @@ public class CabinPressureSensor implements Runnable {
     }
 
     public double generateDecreasingPressureChange() {
-        double pressureDecrease = (new Random()).nextDouble(OPTIMAL_PRESSURE - MIN_PRESSURE) / (Plane.LANDING_DURATION - 3);
+        double pressureDecrease = (new Random()).nextDouble(MAX_PRESSURE - MIN_PRESSURE) / (Plane.LANDING_DURATION - 3);
         pressure -= pressureDecrease;
         return Double.max(MIN_PRESSURE, pressure);
     }
