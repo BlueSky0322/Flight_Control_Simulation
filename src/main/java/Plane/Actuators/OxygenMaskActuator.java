@@ -67,7 +67,7 @@ public class OxygenMaskActuator implements Runnable {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException ex) {
-                        Logger.getLogger(OxygenMaskActuator.class.getName()).log(Level.SEVERE, null, ex);
+                        state = "landing";
                     }
                     OxygenMask.setIsDeployed(false);
                 }
