@@ -12,8 +12,6 @@ import Plane.Sensors.CabinPressureSensor;
 import Plane.Sensors.SpeedDirectionSensor;
 import Plane.Sensors.WeatherSensor;
 import Plane.Utils.WeatherCondition;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
