@@ -114,7 +114,6 @@ public class TailActuator implements Runnable {
 
     public void receiveEmergencyReading() {
         try {
-            Channel emergencyChannel = connection.createChannel();
             emergencyChannel.basicConsume(ActuatorQueues.TAIL_FLAPS_TEMP.getName(), true, (x, msg) -> {
                 String m = new String(msg.getBody(), "UTF-8");
                 String[] readings = m.split(":");
