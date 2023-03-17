@@ -25,7 +25,7 @@ public class AltitudeSensor implements Runnable {
     private Channel sensorsChannel;
     private String state = "normal";
 
-    private static Integer altitude;
+    private static int altitude = 23000;
 
     private static volatile boolean pause = false;
 
@@ -60,7 +60,8 @@ public class AltitudeSensor implements Runnable {
     }
 
     public void generateLandingReadings() {
-        System.out.println("landing readings");
+        int reading = generateDecreasingAltitude();
+        publishMessage(Integer.toString(reading));
         try {
             Thread.sleep(1000);
         } catch (InterruptedException ex) {
@@ -84,7 +85,6 @@ public class AltitudeSensor implements Runnable {
     }
 
 
-
     public int generateRandomAltitude() {
         // Generate a random altitude difference between -2000 and 2000 feet
         int altitudeDifference = (new Random()).nextInt(4001) - 2000;
@@ -100,6 +100,17 @@ public class AltitudeSensor implements Runnable {
         }
 
         return altitude;
+    }
+
+    /**
+     * Generates a decreasing altitude based on the current altitude state of the plane
+     *
+     * @return
+     */
+    public int generateDecreasingAltitude() {
+        int altitudeDecrease = (new Random()).nextInt(4001);
+
+        return Integer.max(0, altitude - altitudeDecrease);
     }
 
     public void publishMessage(String msg) {
