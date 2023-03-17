@@ -15,7 +15,6 @@ import Plane.Utils.WeatherCondition;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -62,30 +61,13 @@ public class Plane {
 
         try {
             plane.start();
-            Thread.sleep(100);
+            Thread.sleep(10000);
         } catch (InterruptedException ex) {
             Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
             System.out.println("Outer exception");
-        }
-
-        CountDownLatch doneSignal = new CountDownLatch(1);
-
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-
-            /** This handler will be called on Control-C pressed */
-            @Override
-            public void run() {
-                // Decrement counter.
-                // It will became 0 and main thread who waits for this barrier could continue run (and fulfill all proper shutdown steps)
-                doneSignal.countDown();
-            }
-        });
-
-
-        // Here we enter wait state until control-c will be pressed
-        try {
-            doneSignal.await();
-        } catch (InterruptedException e) {
+        } finally {
+            stop();
+            //do 2nd mode
         }
 
     }

@@ -59,12 +59,18 @@ public class AltitudeSensor implements Runnable {
         }
     }
 
+    String mode = "normal";
     @Override
     public void run() {
         System.out.println("[SENSOR-AS] Interrupt :" + Thread.currentThread().isInterrupted());
         System.out.println("[SENSOR-AS] ID :" + Thread.currentThread().getId());
         while (!Thread.currentThread().isInterrupted()) {
-            generateReadings();
+            if(mode.equals("normal")) {
+                generateReadings();
+            }
+            else{
+                System.out.println("landing readings");
+            }
         }
     }
 
@@ -76,7 +82,7 @@ public class AltitudeSensor implements Runnable {
                 Thread.sleep(1000);
             } catch (InterruptedException ex) {
                 Logger.getLogger(AltitudeSensor.class.getName()).log(Level.SEVERE, null, ex);
-                Thread.currentThread().interrupt();
+                mode = "landing";
             }
         }
     }
