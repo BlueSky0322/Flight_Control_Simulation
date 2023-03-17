@@ -25,7 +25,7 @@ public class AltitudeSensor implements Runnable {
     private Channel sensorsChannel;
     private String state = "normal";
 
-
+    private static Integer altitude;
 
     private static volatile boolean pause = false;
 
@@ -87,11 +87,10 @@ public class AltitudeSensor implements Runnable {
 
     public int generateRandomAltitude() {
         // Generate a random altitude difference between -2000 and 2000 feet
-        int standardCruisingAltitude = 33000;
         int altitudeDifference = (new Random()).nextInt(4001) - 2000;
 
         // Add the altitude difference to the current altitude
-        int altitude = standardCruisingAltitude + altitudeDifference;
+        altitude += altitudeDifference;
 
         // Ensure that altitude is within the valid range of 28000 to 45000 feet
         if (altitude < 28000) {
