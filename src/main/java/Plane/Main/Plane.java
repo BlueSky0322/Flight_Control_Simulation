@@ -5,19 +5,23 @@
 package Plane.Main;
 
 import Plane.Actuators.*;
+import Plane.Connections.ConnectionManager;
 import Plane.FC.FlightController;
 import Plane.Sensors.AltitudeSensor;
 import Plane.Sensors.CabinPressureSensor;
 import Plane.Sensors.SpeedDirectionSensor;
 import Plane.Sensors.WeatherSensor;
 import Plane.Utils.WeatherCondition;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author ryann
  */
 public class Plane {
@@ -49,16 +53,79 @@ public class Plane {
     public static WeatherCondition currentWeather = WeatherCondition.CLEAR_SKY;// normal weather condition
 
     public Plane() {
-//        this.as = new AltitudeSensor();
-//        this.cps = new CabinPressureSensor();
-//        this.sds = new SpeedDirectionSensor();
-//        this.ws = new WeatherSensor();
-//        this.wa = new WingActuator();
-//        this.ta = new TailActuator();
-//        this.ea = new EngineActuator();
-//        this.oma = new OxygenMaskActuator();
-//        this.fc = new FlightController();
+
     }
+
+
+    public static void main(String[] args) {
+        Plane plane = new Plane();
+
+        try {
+            plane.start();
+            Thread.sleep(100);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Outer exception");
+        }
+
+        CountDownLatch doneSignal = new CountDownLatch(1);
+
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+
+            /** This handler will be called on Control-C pressed */
+            @Override
+            public void run() {
+                // Decrement counter.
+                // It will became 0 and main thread who waits for this barrier could continue run (and fulfill all proper shutdown steps)
+                doneSignal.countDown();
+            }
+        });
+
+
+        // Here we enter wait state until control-c will be pressed
+        try {
+            doneSignal.await();
+        } catch (InterruptedException e) {
+        }
+
+    }
+
+    public void start() {
+
+        Plane.altThread = new Thread(new AltitudeSensor());
+//        Plane.cpsThread = new Thread(new CabinPressureSensor());
+//        Plane.sdsThread = new Thread(new SpeedDirectionSensor());
+//        Plane.wsThread = new Thread(new WeatherSensor());
+//        Plane.waThread = new Thread(new WingActuator());
+//        Plane.taThread = new Thread(new TailActuator());
+//        Plane.eaThread = new Thread(new EngineActuator());
+//        Plane.omaThread = new Thread(new OxygenMaskActuator());
+//        Plane.fcThread = new Thread(new FlightController());
+
+        Plane.altThread.start();
+//        Plane.cpsThread.start();
+//        Plane.sdsThread.start();
+//        Plane.wsThread.start();
+//        Plane.waThread.start();
+//        Plane.taThread.start();
+//        Plane.eaThread.start();
+//        Plane.omaThread.start();
+//        Plane.fcThread.start();
+//        this.asT.start();
+    }
+
+    public static void stop() {
+        Plane.altThread.interrupt();
+//        Plane.cpsThread.interrupt();
+//        Plane.sdsThread.interrupt();
+//        Plane.wsThread.interrupt();
+//        Plane.waThread.interrupt();
+//        Plane.taThread.interrupt();
+//        Plane.eaThread.interrupt();
+//        Plane.omaThread.interrupt();
+//        Plane.fcThread.interrupt();
+    }
+
 
     public static int getCurrentAltitude() {
         return currentAltitude;
@@ -98,65 +165,6 @@ public class Plane {
 
     public static void setCurrentWeather(WeatherCondition currentWeather) {
         currentWeather = currentWeather;
-    }
-
-    public void start() {
-        Plane.altThread = new Thread(new AltitudeSensor());
-        Plane.cpsThread = new Thread(new CabinPressureSensor());
-        Plane.sdsThread = new Thread(new SpeedDirectionSensor());
-        Plane.wsThread = new Thread(new WeatherSensor());
-        Plane.waThread = new Thread(new WingActuator());
-        Plane.taThread = new Thread(new TailActuator());
-        Plane.eaThread = new Thread(new EngineActuator());
-        Plane.omaThread = new Thread(new OxygenMaskActuator());
-        Plane.fcThread = new Thread(new FlightController());
-
-        Plane.altThread.start();
-        Plane.cpsThread.start();
-        Plane.sdsThread.start();
-        Plane.wsThread.start();
-        Plane.waThread.start();
-        Plane.taThread.start();
-        Plane.eaThread.start();
-        Plane.omaThread.start();
-        Plane.fcThread.start();
-//        this.asT.start();
-//        //executorService.execute(asT);
-//        executorService.execute(cps);
-//        executorService.execute(sds);
-//        executorService.execute(ws);
-//        executorService.execute(wa);
-//        executorService.execute(ta);
-//        executorService.execute(ea);
-//        executorService.execute(oma);
-//        executorService.execute(fc);
-    }
-
-    public static void stop() {
-        Plane.altThread.interrupt();
-        Plane.cpsThread.interrupt();
-        Plane.sdsThread.interrupt();
-        Plane.wsThread.interrupt();
-        Plane.waThread.interrupt();
-        Plane.taThread.interrupt();
-        Plane.eaThread.interrupt();
-        Plane.omaThread.interrupt();
-        Plane.fcThread.interrupt();
-    }
-
-    public static void main(String[] args) {
-        Plane plane = new Plane();
-
-        try {
-            plane.start();
-            Thread.sleep(100);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
-            System.out.println("Outer exception");
-        } finally {
-            plane.stop();
-        }
-
     }
 
 }

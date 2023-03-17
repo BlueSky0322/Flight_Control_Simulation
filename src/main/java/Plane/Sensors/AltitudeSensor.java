@@ -69,15 +69,14 @@ public class AltitudeSensor implements Runnable {
     }
 
     public void generateReadings() {
-        while (!pause) {
+        if (!pause) {
             int reading = generateRandomAltitude();
             publishMessage(Integer.toString(reading));
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ex) {
-//                System.out.println("[SENSOR-ALT] Inner exception");
-//                return;
                 Logger.getLogger(AltitudeSensor.class.getName()).log(Level.SEVERE, null, ex);
+                Thread.currentThread().interrupt();
             }
         }
     }

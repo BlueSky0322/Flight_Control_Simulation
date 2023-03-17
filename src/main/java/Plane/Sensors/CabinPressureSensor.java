@@ -13,6 +13,7 @@ import Plane.Main.Plane;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.Executors;
@@ -23,7 +24,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author ryann
  */
 public class CabinPressureSensor implements Runnable {
