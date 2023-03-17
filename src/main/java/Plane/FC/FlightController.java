@@ -137,7 +137,7 @@ public class FlightController implements Runnable {
         System.out.println("[x] [CONTROL-FC] Stabilizing aircraft parameters...");
         publishEmergencyReadings();
         try {
-            Thread.sleep(10000);
+            Thread.sleep(3000);
         } catch (InterruptedException ex) {
             Logger.getLogger(FlightController.class.getName()).log(Level.SEVERE, null, ex);
         }

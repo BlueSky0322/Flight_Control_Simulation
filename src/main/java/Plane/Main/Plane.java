@@ -87,34 +87,34 @@ public class Plane {
         Plane.altThread = new Thread(new AltitudeSensor());
         Plane.cpsThread = new Thread(new CabinPressureSensor());
         Plane.sdsThread = new Thread(new SpeedDirectionSensor());
-//        Plane.wsThread = new Thread(new WeatherSensor());
+        Plane.wsThread = new Thread(new WeatherSensor());
 //        Plane.waThread = new Thread(new WingActuator());
 //        Plane.taThread = new Thread(new TailActuator());
 //        Plane.eaThread = new Thread(new EngineActuator());
 //        Plane.omaThread = new Thread(new OxygenMaskActuator());
-//        Plane.fcThread = new Thread(new FlightController());
+        Plane.fcThread = new Thread(new FlightController());
 
         Plane.altThread.start();
         Plane.cpsThread.start();
         Plane.sdsThread.start();
-//        Plane.wsThread.start();
+        Plane.wsThread.start();
 //        Plane.waThread.start();
 //        Plane.taThread.start();
 //        Plane.eaThread.start();
 //        Plane.omaThread.start();
-//        Plane.fcThread.start();
+        Plane.fcThread.start();
     }
 
     public static void stop() {
         Plane.altThread.interrupt();
         Plane.cpsThread.interrupt();
         Plane.sdsThread.interrupt();
-//        Plane.wsThread.interrupt();
+        Plane.wsThread.interrupt();
 //        Plane.waThread.interrupt();
 //        Plane.taThread.interrupt();
 //        Plane.eaThread.interrupt();
 //        Plane.omaThread.interrupt();
-//        Plane.fcThread.interrupt();
+        Plane.fcThread.interrupt();
     }
 
 

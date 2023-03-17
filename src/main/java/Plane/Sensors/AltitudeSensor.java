@@ -70,7 +70,6 @@ public class AltitudeSensor implements Runnable {
         } catch (InterruptedException ex) {
             state = "stopping";
         }
-
     }
 
     public void generateReadings() {
