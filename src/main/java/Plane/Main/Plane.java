@@ -65,9 +65,16 @@ public class Plane {
         } catch (InterruptedException ex) {
             Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
             System.out.println("Outer exception");
-        } finally {
+        }
+        stop();
+
+        try {
+
+            Thread.sleep(10000);
             stop();
-            //do 2nd mode
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Outer exception");
         }
 
     }
@@ -148,5 +155,6 @@ public class Plane {
     public static void setCurrentWeather(WeatherCondition currentWeather) {
         currentWeather = currentWeather;
     }
-
 }
+
+

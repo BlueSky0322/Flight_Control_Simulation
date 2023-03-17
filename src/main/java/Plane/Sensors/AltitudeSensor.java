@@ -13,6 +13,7 @@ import Plane.Main.Plane;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.Executors;
@@ -23,7 +24,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author ryann
  */
 public class AltitudeSensor implements Runnable {
@@ -60,18 +60,31 @@ public class AltitudeSensor implements Runnable {
     }
 
     String mode = "normal";
+
     @Override
     public void run() {
         System.out.println("[SENSOR-AS] Interrupt :" + Thread.currentThread().isInterrupted());
         System.out.println("[SENSOR-AS] ID :" + Thread.currentThread().getId());
         while (!Thread.currentThread().isInterrupted()) {
-            if(mode.equals("normal")) {
+            if (mode.equals("normal")) {
                 generateReadings();
-            }
-            else{
-                System.out.println("landing readings");
+            } else if (mode.equals("landing")) {
+                generateLandingReadings();
+            } else {
+                Thread.currentThread().interrupt();
             }
         }
+    }
+
+    public void generateLandingReadings() {
+        System.out.println("landing readings");
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(AltitudeSensor.class.getName()).log(Level.SEVERE, null, ex);
+            mode = "stopping";
+        }
+
     }
 
     public void generateReadings() {

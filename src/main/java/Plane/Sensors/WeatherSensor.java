@@ -130,6 +130,7 @@ public class WeatherSensor implements Runnable {
 
     public void publishMessage(String msg) {
         try {
+            sensorsChannel.
             sensorsChannel.basicPublish(Exchanges.SENSOR.getName(), RoutingKeys.WEATHER.getKey(), null, msg.getBytes("UTF-8"));
             System.out.println("[SENSOR-WS] Weather condition reading sent to [CONTROL-FC] (" + msg + ")");
         } catch (IOException ex) {
