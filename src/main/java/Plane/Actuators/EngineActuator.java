@@ -47,8 +47,8 @@ public class EngineActuator implements Runnable {
             actuatorChannel = connection.createChannel();
             emergencyChannel = connection.createChannel();
             System.out.println("[*] [ACTUATOR-EAE] ENGINE ACTUATOR: Started successfully.");
-            ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-            executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+            //ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+            //executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
         } catch (IOException ex) {
             Logger.getLogger(EngineActuator.class.getName()).log(Level.SEVERE, null, ex);
         } catch (TimeoutException ex) {

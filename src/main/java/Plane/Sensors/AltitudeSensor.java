@@ -115,10 +115,12 @@ public class AltitudeSensor implements Runnable {
 
     public void publishMessage(String msg) {
         try {
-            sensorsChannel.basicPublish(Exchanges.SENSOR.getName(), RoutingKeys.ALTITUDE.getKey(), null, msg.getBytes());
+            sensorsChannel.basicPublish(Exchanges.SENSOR.getName(), 
+                    RoutingKeys.ALTITUDE.getKey(), null, msg.getBytes());
             System.out.println("[SENSOR-AS] Altitude reading sent to [CONTROL-FC] (" + msg + ")");
         } catch (IOException ex) {
-            Logger.getLogger(AltitudeSensor.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(AltitudeSensor.class.getName())
+                    .log(Level.SEVERE, null, ex);
         }
     }
 }

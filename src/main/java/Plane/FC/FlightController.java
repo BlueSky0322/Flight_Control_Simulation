@@ -198,15 +198,19 @@ public class FlightController implements Runnable {
 
     public void receiveAltitudeReading() {
         try {
-            sensorsChannel.basicConsume(SensorQueues.ALTITUDE.getName(), true, ((consumerTag, message) -> {
+            sensorsChannel.basicConsume(SensorQueues.ALTITUDE.getName(), 
+                    true, ((consumerTag, message) -> {
                 String msg = new String(message.getBody(), "UTF-8");
                 Plane.currentAltitude = Integer.parseInt(msg);
-                System.out.println("[CONTROL-FC] Received altitude reading from [SENSOR-AS] (" + msg + ")");
+                System.out.println(
+                        "[CONTROL-FC] Received altitude reading from [SENSOR-AS] (" 
+                                + msg + ")");
 
             }), consumerTag -> {
             });
         } catch (IOException ex) {
-            Logger.getLogger(FlightController.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FlightController.class.getName())
+                    .log(Level.SEVERE, null, ex);
         }
 
     }
