@@ -20,12 +20,13 @@ import Plane.Sensors.CabinPressureSensor;
 import Plane.Sensors.SpeedDirectionSensor;
 import Plane.Sensors.WeatherSensor;
 import Plane.Utils.WeatherCondition;
+import Plane.model.ActuatorData;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 import java.io.IOException;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -108,9 +109,11 @@ public class FlightController implements Runnable {
                     receiveCabinPressureReading();
                     receiveSpeedDirectionReading();
                     receiveWeatherReading();
-                    processAltitudeOutOfRange(Plane.currentAltitude);
-                    processDirectionDeviation(Plane.currentDirection);
-                    processSpeedDeviation(Plane.currentSpeed, Plane.currentAltitude);
+                    List<ActuatorData> actuatorDataList = new ArrayList<>();
+                    actuatorDataList.add(new ActuatorData(RoutingKeys.WING_FLAPS.getKey(), processAltitudeOutOfRange(Plane.currentAltitude)));
+                    actuatorDataList.add(new ActuatorData(RoutingKeys.TAIL_FLAPS.getKey(), processDirectionDeviation(Plane.currentDirection)));
+                    actuatorDataList.add(new ActuatorData(RoutingKeys.ENGINES.getKey(), processSpeedDeviation(Plane.currentSpeed, Plane.currentAltitude)));
+                    actuatorDataList.parallelStream().forEach(this::sendActuatorData);
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException ex) {
@@ -193,7 +196,7 @@ public class FlightController implements Runnable {
         Plane.currentPressure = 1.0;
         System.out.println(
                 "\n[x] [CONTROL-FC] Sudden cabin pressure loss detected! Current Cabin Pressure ("
-                + Plane.currentPressure + ")");
+                        + Plane.currentPressure + ")");
         System.out.println();
         System.out.println("!!!=========!!!=========!!!=========!!!=========!!!=========!!!=========!!!=========!!!");
         startCabinPressureLossEvent();
@@ -236,20 +239,20 @@ public class FlightController implements Runnable {
             ConnectionManager.
                     declareEmergencyBindings(emergencyChannel);
             emergencyChannel.basicPublish(
-                    Exchanges.EMERGENCY.getName(), 
-                    RoutingKeys.WING_FLAPS_TEMP.getKey(), 
+                    Exchanges.EMERGENCY.getName(),
+                    RoutingKeys.WING_FLAPS_TEMP.getKey(),
                     null, targetWACorrection.getBytes());
             emergencyChannel.basicPublish(
-                    Exchanges.EMERGENCY.getName(), 
-                    RoutingKeys.TAIL_FLAPS_TEMP.getKey(), 
+                    Exchanges.EMERGENCY.getName(),
+                    RoutingKeys.TAIL_FLAPS_TEMP.getKey(),
                     null, targetTACorrection.getBytes());
             emergencyChannel.basicPublish(
-                    Exchanges.EMERGENCY.getName(), 
-                    RoutingKeys.ENGINES_TEMP.getKey(), 
+                    Exchanges.EMERGENCY.getName(),
+                    RoutingKeys.ENGINES_TEMP.getKey(),
                     null, targetEACorrection.getBytes());
             emergencyChannel.basicPublish(
-                    Exchanges.EMERGENCY.getName(), 
-                    RoutingKeys.OXYGEN_MASKS.getKey(), 
+                    Exchanges.EMERGENCY.getName(),
+                    RoutingKeys.OXYGEN_MASKS.getKey(),
                     null, deployOxygenMasks.getBytes());
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class.getName())
@@ -265,7 +268,7 @@ public class FlightController implements Runnable {
                         Plane.currentAltitude = Integer.parseInt(msg);
                         System.out.println(
                                 "[CONTROL-FC] Received altitude reading from [SENSOR-AS] ("
-                                + msg + ")");
+                                        + msg + ")");
 
                     }), consumerTag -> {
                     });
@@ -349,7 +352,7 @@ public class FlightController implements Runnable {
     /*
         PROCESS READINGS
      */
-    public void processAltitudeOutOfRange(int currentAltitude) {
+    public String processAltitudeOutOfRange(int currentAltitude) {
         int safeAltitude = 33000;
         int altitudeMargin = 400;
         int angleCorrection;
@@ -367,13 +370,13 @@ public class FlightController implements Runnable {
 
         String wingFlapCorrection
                 = String.join("",
-                        String.valueOf(angleCorrection),
-                        ":",
-                        directionCorrection);
-        sendWingActuatorData(wingFlapCorrection);
+                String.valueOf(angleCorrection),
+                ":",
+                directionCorrection);
+        return wingFlapCorrection;
     }
 
-    public void processDirectionDeviation(int currDir) {
+    public String processDirectionDeviation(int currDir) {
         int courseDirection = 90; // assume 90 degrees is the desired course direction
         int deviation = Math.abs(currDir - courseDirection);
         int angleThreshold = 10; // assume a threshold of 10 degrees
@@ -397,10 +400,10 @@ public class FlightController implements Runnable {
         String tailFlapCorrection = String.join("",
                 String.valueOf(angleCorrection),
                 ":", directionCorrection);
-        sendTailActuatorData(tailFlapCorrection);
+        return tailFlapCorrection;
     }
 
-    public void processSpeedDeviation(int currSpd, int currAlt) {
+    public String processSpeedDeviation(int currSpd, int currAlt) {
         int standardThrottle = 60;
         int maxSpeed = 570;
         int correspondingAltitude = 33000;
@@ -424,7 +427,22 @@ public class FlightController implements Runnable {
             throttleCorrection = 0;
         }
         String engineCorrection = Integer.toString(throttleCorrection);
-        sendEngineActuatorData(engineCorrection);
+        return engineCorrection;
+    }
+
+    public void sendActuatorData(ActuatorData data) {
+        try {
+            actuatorsChannel.basicPublish(
+                    Exchanges.ACTUATOR.getName(),
+                    data.getRoutingKey(),
+                    false, null, data.getMsg().getBytes());
+            System.out.println(
+                    "[CONTROL-FC] Sending actuator data readings to ("
+                            + data.getRoutingKey() + ")");
+        } catch (IOException ex) {
+            Logger.getLogger(FlightController.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     /*
@@ -438,7 +456,7 @@ public class FlightController implements Runnable {
                     false, null, msg.getBytes());
             System.out.println(
                     "[CONTROL-FC] Sending wing actuator data readings to [ACTUATOR-WAWF] ("
-                    + msg + ")");
+                            + msg + ")");
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -453,7 +471,7 @@ public class FlightController implements Runnable {
                     false, null, msg.getBytes());
             System.out.println(
                     "[CONTROL-FC] Sending tail actuator data readings to [ACTUATOR-TATF] ("
-                    + msg + ")");
+                            + msg + ")");
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -468,7 +486,7 @@ public class FlightController implements Runnable {
                     false, null, msg.getBytes());
             System.out.println(
                     "[CONTROL-FC] Sending engine actuator data readings to [ACTUATOR-EAE] ("
-                    + msg + ")");
+                            + msg + ")");
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class
                     .getName()).log(Level.SEVERE, null, ex);
