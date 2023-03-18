@@ -24,9 +24,6 @@ import com.rabbitmq.client.ConnectionFactory;
 
 import java.io.IOException;
 import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,9 +40,6 @@ public class FlightController implements Runnable {
     private Channel emergencyChannel;
 
     private static String state = "normal";
-    //    private final CabinPressureSensor cps;
-//    private final SpeedDirectionSensor sds;
-//    private final WeatherSensor ws;
     private volatile boolean emergencyEvent = false;
 
     public void startCabinPressureLossEvent() {
@@ -74,15 +68,7 @@ public class FlightController implements Runnable {
         System.out.println("[x] [CONTROL-FC] EMERGENCY PROTOCOL DISABLED!");
     }
 
-    //    public FlightController(Plane plane, AltitudeSensor alt, CabinPressureSensor cps, SpeedDirectionSensor sds, WeatherSensor ws) {
-//        this.plane = plane;
-//        this.alt = alt;
-//        this.cps = cps;
-//        this.sds = sds;
-//        this.ws = ws;
-//        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-//        executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
-//    }
+
     public FlightController() {
         try {
             factory = new ConnectionFactory();
@@ -124,10 +110,12 @@ public class FlightController implements Runnable {
                         Thread.sleep(1000);
                     } catch (InterruptedException ex) {
                         state = "landing";
+                        stopCabinPressureLossEvent();
                         deployLandingGear();
                     }
                 }
             } else if (state.equals("landing")) {
+                engageLandingRoutine();
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException ex) {
@@ -139,6 +127,59 @@ public class FlightController implements Runnable {
         }
 
     }
+
+    private void engageLandingRoutine() {
+        sendAbsoluteLandingDataToWingActuator();
+        sendAbsoluteLandingDataToTailActuator();
+        sendAbsoluteLandingDataToEngineActuator();
+        sendLandingSignalToLandingGear();
+    }
+
+    private void sendLandingSignalToLandingGear() {
+        String msg = "true";
+        try {
+            actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.LANDING_GEAR.getKey(), false, null, msg.getBytes());
+            System.out.println("[CONTROL-FC] Sending landing gear to [ACTUATOR-LGALG] (" + msg + ")");
+        } catch (IOException ex) {
+            Logger.getLogger(FlightController.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private void sendAbsoluteLandingDataToWingActuator() {
+        String msg = "-30:down";
+        try {
+            actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.WING_FLAPS.getKey(), false, null, msg.getBytes());
+            System.out.println("[CONTROL-FC] Sending wing actuator data readings to [ACTUATOR-WAWF] (" + msg + ")");
+        } catch (IOException ex) {
+            Logger.getLogger(FlightController.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private void sendAbsoluteLandingDataToTailActuator() {
+        String msg = "0:neutral";
+        try {
+            actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.TAIL_FLAPS.getKey(), false, null, msg.getBytes());
+            System.out.println("[CONTROL-FC] Sending tail actuator data readings to [ACTUATOR-TATF] (" + msg + ")");
+        } catch (IOException ex) {
+            Logger.getLogger(FlightController.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+
+    }
+
+    private void sendAbsoluteLandingDataToEngineActuator() {
+        String msg = "-10";
+        try {
+            actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.ENGINES.getKey(), false, null, msg.getBytes());
+            System.out.println("[CONTROL-FC] Sending engine actuator data readings to [ACTUATOR-EAE] (" + msg + ")");
+        } catch (IOException ex) {
+            Logger.getLogger(FlightController.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
 
     public void deployLandingGear() {
         System.out.println("==============DEPLOYING LANDING GEAR==================");
@@ -157,14 +198,16 @@ public class FlightController implements Runnable {
             Thread.sleep(3000);
         } catch (InterruptedException ex) {
             Logger.getLogger(FlightController.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            System.out.println("===-----------------------===-----------------------===");
+            System.out.println("\n[!] [CONTROL-FC] SUCCESSFULLY Regained control over aircraft!\n");
+
+            stopCabinPressureLossEvent();
+
+            System.out.println("!!!=========!!!=========!!!=========!!!=========!!!=========!!!=========!!!=========!!!\n");
         }
-        System.out.println("===-----------------------===-----------------------===");
-        System.out.println("\n[!] [CONTROL-FC] SUCCESSFULLY Regained control over aircraft!\n");
-
-        stopCabinPressureLossEvent();
-
-        System.out.println("!!!=========!!!=========!!!=========!!!=========!!!=========!!!=========!!!=========!!!\n");
     }
+
 
     public void publishEmergencyReadings() {
         try {

@@ -71,6 +71,7 @@ public class EngineActuator implements Runnable {
                 receiveEmergencyReading();
             } else if (state.equals("landing")) {
                 try {
+                    receiveLandingReading();
                     Thread.sleep(1000);
                 } catch (InterruptedException ex) {
                     state = "stopping";
@@ -81,6 +82,33 @@ public class EngineActuator implements Runnable {
         }
 
     }
+
+    private void receiveLandingReading() {
+        try {
+            actuatorChannel.basicConsume(ActuatorQueues.ENGINES.getName(), true, (consumerTag, msg) -> {
+                String m = new String(msg.getBody());
+
+                int throttleCorrection = Integer.parseInt(m);
+                handleLandingReading(throttleCorrection);
+
+            }, consumerTag -> {
+            });
+        } catch (IOException ex) {
+            Logger.getLogger(EngineActuator.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private void handleLandingReading(int throttleCorrection) {
+        System.out.println("[ACTUATOR-EAE] Received correction from [FC] (" + throttleCorrection + "%)");
+
+        int newThrottle = Engine.getThrottle() + throttleCorrection;
+        Engine.setThrottle(Math.max(0,newThrottle));
+
+
+        System.out.println("[ACTUATOR-EAE] Updating Engine Throttle...");
+        System.out.println("[ACTUATOR-EAE] Current Engine Readings: THROTTLE (" + Engine.getThrottle() + "%)");
+    }
+
 
     public void handleReading(int throttleCorrection) {
         System.out.println("[ACTUATOR-EAE] Received correction from [FC] (" + throttleCorrection + "%)");
