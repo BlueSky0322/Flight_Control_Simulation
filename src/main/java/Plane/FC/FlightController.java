@@ -55,7 +55,8 @@ public class FlightController implements Runnable {
         WingActuator.pauseActuator();
         TailActuator.pauseActuator();
         OxygenMaskActuator.deployOxygenMasks();
-        System.out.println("[x] [CONTROL-FC] EMERGENCY PROTOCOL ENABLED!");
+        System.out.println(
+                "[x] [CONTROL-FC] EMERGENCY PROTOCOL ENABLED!");
     }
 
     public void stopCabinPressureLossEvent() {
@@ -68,7 +69,8 @@ public class FlightController implements Runnable {
         WingActuator.unpauseActuator();
         TailActuator.unpauseActuator();
         OxygenMaskActuator.stopDeployOxygenMasks();
-        System.out.println("[x] [CONTROL-FC] EMERGENCY PROTOCOL DISABLED!");
+        System.out.println(
+                "[x] [CONTROL-FC] EMERGENCY PROTOCOL DISABLED!");
     }
 
     public FlightController() {
@@ -187,9 +189,11 @@ public class FlightController implements Runnable {
         }
     }
 
-    public void pauseReadings() {
+    public void pauseNormalCommunications() {
         Plane.currentPressure = 1.0;
-        System.out.println("\n[x] [CONTROL-FC] Sudden cabin pressure loss detected! Current Cabin Pressure (" + Plane.currentPressure + ")");
+        System.out.println(
+                "\n[x] [CONTROL-FC] Sudden cabin pressure loss detected! Current Cabin Pressure ("
+                + Plane.currentPressure + ")");
         System.out.println();
         System.out.println("!!!=========!!!=========!!!=========!!!=========!!!=========!!!=========!!!=========!!!");
         startCabinPressureLossEvent();
@@ -199,7 +203,8 @@ public class FlightController implements Runnable {
         try {
             Thread.sleep(3000);
         } catch (InterruptedException ex) {
-            Logger.getLogger(FlightController.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FlightController.class.getName())
+                    .log(Level.SEVERE, null, ex);
         } finally {
             System.out.println("===-----------------------===-----------------------===");
             System.out.println("\n[!] [CONTROL-FC] SUCCESSFULLY Regained control over aircraft!\n");
@@ -224,19 +229,31 @@ public class FlightController implements Runnable {
             System.out.println("[x] [ACTUATOR-EAE] Target correction: " + targetEACorrection);
             System.out.println("[x] [ACTUATOR-OMA] Deploy Masks: Yes");
 
-            //System.out.println("[" + targetWACorrection + "] & [" + targetTACorrection + "] & [" + targetEACorrection + "] & [" + deployOxygenMasks + "]");
-            //ConnectionManager.resetEmergencyQueues(emergencyChannel);
-            ConnectionManager.declareExchange(Exchanges.EMERGENCY.getName(), emergencyChannel);
-            ConnectionManager.declareEmergencyQueues(emergencyChannel);
-            ConnectionManager.declareEmergencyBindings(emergencyChannel);
-            emergencyChannel.basicPublish(Exchanges.EMERGENCY.getName(), RoutingKeys.WING_FLAPS_TEMP.getKey(), null, targetWACorrection.getBytes());
-            emergencyChannel.basicPublish(Exchanges.EMERGENCY.getName(), RoutingKeys.TAIL_FLAPS_TEMP.getKey(), null, targetTACorrection.getBytes());
-            emergencyChannel.basicPublish(Exchanges.EMERGENCY.getName(), RoutingKeys.ENGINES_TEMP.getKey(), null, targetEACorrection.getBytes());
-            emergencyChannel.basicPublish(Exchanges.EMERGENCY.getName(), RoutingKeys.OXYGEN_MASKS.getKey(), null, deployOxygenMasks.getBytes());
-
-            //emergencyChannel.close();
+            ConnectionManager.
+                    declareExchange(Exchanges.EMERGENCY.getName(), emergencyChannel);
+            ConnectionManager.
+                    declareEmergencyQueues(emergencyChannel);
+            ConnectionManager.
+                    declareEmergencyBindings(emergencyChannel);
+            emergencyChannel.basicPublish(
+                    Exchanges.EMERGENCY.getName(), 
+                    RoutingKeys.WING_FLAPS_TEMP.getKey(), 
+                    null, targetWACorrection.getBytes());
+            emergencyChannel.basicPublish(
+                    Exchanges.EMERGENCY.getName(), 
+                    RoutingKeys.TAIL_FLAPS_TEMP.getKey(), 
+                    null, targetTACorrection.getBytes());
+            emergencyChannel.basicPublish(
+                    Exchanges.EMERGENCY.getName(), 
+                    RoutingKeys.ENGINES_TEMP.getKey(), 
+                    null, targetEACorrection.getBytes());
+            emergencyChannel.basicPublish(
+                    Exchanges.EMERGENCY.getName(), 
+                    RoutingKeys.OXYGEN_MASKS.getKey(), 
+                    null, deployOxygenMasks.getBytes());
         } catch (IOException ex) {
-            Logger.getLogger(FlightController.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FlightController.class.getName())
+                    .log(Level.SEVERE, null, ex);
         }
     }
 
@@ -295,24 +312,36 @@ public class FlightController implements Runnable {
 
     public void receiveWeatherReading() {
         try {
-            sensorsChannel.basicConsume(SensorQueues.WEATHER.getName(), true, (x, msg) -> {
-                String m = new String(msg.getBody(), "UTF-8");
-                int weatherCode = Integer.parseInt(m);
-                if (weatherCode == 0) {
-                    System.out.println("[CONTROL-FC] Received CLEAR SKY reading from [SENSOR-WS]");
-                    Plane.currentWeather = WeatherCondition.CLEAR_SKY;
-                } else if (weatherCode == 1) {
-                    System.out.println("[CONTROL-FC] Received STORM/TURBULENCE reading from [SENSOR-WS]");
-                    Plane.currentWeather = WeatherCondition.TURBULENCE;
-                    pauseReadings();
-                } else if (weatherCode == 2) {
-                    System.out.println("[CONTROL-FC] Received ICING reading from [SENSOR-WS]");
-                    Plane.currentWeather = WeatherCondition.ICING;
-                }
-            }, x -> {
-            });
+            sensorsChannel.basicConsume(SensorQueues.WEATHER.getName(),
+                    true, (x, msg) -> {
+                        String m = new String(
+                                msg.getBody(), "UTF-8");
+                        int weatherCode = Integer.parseInt(m);
+                        switch (weatherCode) {
+                            case 0:
+                                System.out.println(
+                                        "[CONTROL-FC] Received CLEAR SKY reading from [SENSOR-WS]");
+                                Plane.currentWeather = WeatherCondition.CLEAR_SKY;
+                                break;
+                            case 1:
+                                System.out.println(
+                                        "[CONTROL-FC] Received STORM/TURBULENCE reading from [SENSOR-WS]");
+                                Plane.currentWeather = WeatherCondition.TURBULENCE;
+                                pauseNormalCommunications();
+                                break;
+                            case 2:
+                                System.out.println(
+                                        "[CONTROL-FC] Received ICING reading from [SENSOR-WS]");
+                                Plane.currentWeather = WeatherCondition.ICING;
+                                break;
+                            default:
+                                break;
+                        }
+                    }, x -> {
+                    });
         } catch (IOException ex) {
-            Logger.getLogger(FlightController.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(FlightController.class.getName())
+                    .log(Level.SEVERE, null, ex);
         }
 
     }
@@ -365,7 +394,9 @@ public class FlightController implements Runnable {
             directionCorrection = "neutral";
         }
 
-        String tailFlapCorrection = String.join("", String.valueOf(angleCorrection), ":", directionCorrection);
+        String tailFlapCorrection = String.join("",
+                String.valueOf(angleCorrection),
+                ":", directionCorrection);
         sendTailActuatorData(tailFlapCorrection);
     }
 
@@ -388,12 +419,10 @@ public class FlightController implements Runnable {
                     throttleCorrection = -throttleCorrection;
                 }
             }
-
         } else {
             // throttle outside 5% margin, or altitude is lower than 36000
             throttleCorrection = 0;
         }
-
         String engineCorrection = Integer.toString(throttleCorrection);
         sendEngineActuatorData(engineCorrection);
     }
@@ -403,8 +432,13 @@ public class FlightController implements Runnable {
      */
     public void sendWingActuatorData(String msg) {
         try {
-            actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.WING_FLAPS.getKey(), false, null, msg.getBytes());
-            System.out.println("[CONTROL-FC] Sending wing actuator data readings to [ACTUATOR-WAWF] (" + msg + ")");
+            actuatorsChannel.basicPublish(
+                    Exchanges.ACTUATOR.getName(),
+                    RoutingKeys.WING_FLAPS.getKey(),
+                    false, null, msg.getBytes());
+            System.out.println(
+                    "[CONTROL-FC] Sending wing actuator data readings to [ACTUATOR-WAWF] ("
+                    + msg + ")");
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -413,8 +447,13 @@ public class FlightController implements Runnable {
 
     public void sendTailActuatorData(String msg) {
         try {
-            actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.TAIL_FLAPS.getKey(), false, null, msg.getBytes());
-            System.out.println("[CONTROL-FC] Sending tail actuator data readings to [ACTUATOR-TATF] (" + msg + ")");
+            actuatorsChannel.basicPublish(
+                    Exchanges.ACTUATOR.getName(),
+                    RoutingKeys.TAIL_FLAPS.getKey(),
+                    false, null, msg.getBytes());
+            System.out.println(
+                    "[CONTROL-FC] Sending tail actuator data readings to [ACTUATOR-TATF] ("
+                    + msg + ")");
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -423,8 +462,13 @@ public class FlightController implements Runnable {
 
     public void sendEngineActuatorData(String msg) {
         try {
-            actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.ENGINES.getKey(), false, null, msg.getBytes());
-            System.out.println("[CONTROL-FC] Sending engine actuator data readings to [ACTUATOR-EAE] (" + msg + ")");
+            actuatorsChannel.basicPublish(
+                    Exchanges.ACTUATOR.getName(),
+                    RoutingKeys.ENGINES.getKey(),
+                    false, null, msg.getBytes());
+            System.out.println(
+                    "[CONTROL-FC] Sending engine actuator data readings to [ACTUATOR-EAE] ("
+                    + msg + ")");
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class
                     .getName()).log(Level.SEVERE, null, ex);

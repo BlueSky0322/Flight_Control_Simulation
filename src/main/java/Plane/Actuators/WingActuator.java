@@ -42,7 +42,6 @@ public class WingActuator implements Runnable {
         System.out.println("[x] [ACTUATOR-WAWF] Resuming WING Actuator...");
     }
 
-
     public WingActuator() {
         try {
             factory = new ConnectionFactory();
@@ -121,7 +120,8 @@ public class WingActuator implements Runnable {
 
     public void receiveEmergencyReading() {
         try {
-            emergencyChannel.basicConsume(ActuatorQueues.WING_FLAPS_TEMP.getName(), true, (x, msg) -> {
+            emergencyChannel.basicConsume(
+                    ActuatorQueues.WING_FLAPS_TEMP.getName(), true, (x, msg) -> {
                 String m = new String(msg.getBody(), "UTF-8");
                 String[] readings = m.split(":");
 
@@ -130,12 +130,14 @@ public class WingActuator implements Runnable {
 
                 System.out.println("[ACTUATOR-WAWF] Received emergency corrections from [FC]");
                 System.out.println("[ACTUATOR-WAWF] Updating Wing Flap...");
-                System.out.println("[ACTUATOR-WAWF] Current Wing Flap Readings: ANGLE (" + WingFlap.getAngle() + ") ; DIRECTION (" + WingFlap.getDirection() + ")");
+                System.out.println("[ACTUATOR-WAWF] Current Wing Flap Readings: ANGLE ("
+                        + WingFlap.getAngle() + ") ; DIRECTION (" + WingFlap.getDirection() + ")");
             }, x -> {
             });
             //emergencyChannel.close();
         } catch (IOException ex) {
-            Logger.getLogger(WingActuator.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(WingActuator.class.getName())
+                    .log(Level.SEVERE, null, ex);
         }
     }
 }

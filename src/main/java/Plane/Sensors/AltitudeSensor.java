@@ -25,11 +25,8 @@ public class AltitudeSensor implements Runnable {
 
     private Channel sensorsChannel;
     private String state = "normal";
-
     private static int altitude = 23000;
-
     private static final int OPTIMAL_ALTITUDE = 23000;
-
     private static volatile boolean pause = false;
 
     public static void pauseSensor() {

@@ -55,15 +55,15 @@ public class Plane {
         } catch (InterruptedException ex) {
             Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.out.println("================plane is landing===================");
+        System.out.println("\n================ PLANE IS NOW LANDING ================\n");
 
-        stop();
+        interrupt();
 
         try {
 
             Thread.sleep(LANDING_DURATION * 1000);
-            System.out.println("==============plane is stopping============");
-            stop();
+            System.out.println("\n================ PLANE IS NOW STOPPING ================");
+            interrupt();
         } catch (InterruptedException ex) {
             Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -95,7 +95,7 @@ public class Plane {
         Plane.lgThread.start();
     }
 
-    public static void stop() {
+    public static void interrupt() {
         Plane.altThread.interrupt();
         Plane.cpsThread.interrupt();
         Plane.sdsThread.interrupt();

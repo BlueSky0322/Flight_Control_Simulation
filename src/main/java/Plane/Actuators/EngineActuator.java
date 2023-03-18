@@ -11,9 +11,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 import java.io.IOException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -85,30 +82,49 @@ public class EngineActuator implements Runnable {
 
     private void receiveLandingReading() {
         try {
-            actuatorChannel.basicConsume(ActuatorQueues.ENGINES.getName(), true, (consumerTag, msg) -> {
-                String m = new String(msg.getBody());
+            actuatorChannel.basicConsume(
+                    ActuatorQueues.ENGINES.getName(),
+                    true, (consumerTag, msg) -> {
+                        String m = new String(msg.getBody());
 
-                int throttleCorrection = Integer.parseInt(m);
-                handleLandingReading(throttleCorrection);
+                        int throttleCorrection = Integer.parseInt(m);
+                        handleLandingReading(throttleCorrection);
 
-            }, consumerTag -> {
-            });
+                    }, consumerTag -> {
+                    });
         } catch (IOException ex) {
-            Logger.getLogger(EngineActuator.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(EngineActuator.class.getName())
+                    .log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public void receiveReading() {
+        try {
+            actuatorChannel.basicConsume(
+                    ActuatorQueues.ENGINES.getName(),
+                    true, (consumerTag, msg) -> {
+                        String m = new String(msg.getBody());
+
+                        int throttleCorrection = Integer.parseInt(m);
+                        handleReading(throttleCorrection);
+
+                    }, consumerTag -> {
+                    });
+        } catch (IOException ex) {
+            Logger.getLogger(EngineActuator.class.getName())
+                    .log(Level.SEVERE, null, ex);
         }
     }
 
     private void handleLandingReading(int throttleCorrection) {
-        //System.out.println("{LANDING} [ACTUATOR-EAE] Received correction from [FC] (" + throttleCorrection + "%)");
 
         int newThrottle = Engine.getThrottle() + throttleCorrection;
-        Engine.setThrottle(Math.max(0,newThrottle));
+        Engine.setThrottle(Math.max(0, newThrottle));
 
-
-        //System.out.println("{LANDING} [ACTUATOR-EAE] Updating Engine Throttle...");
-        System.out.println("{LANDING} [ACTUATOR-EAE] Current Engine Readings: THROTTLE (" + Engine.getThrottle() + "%)");
+        System.out.println(
+                "{LANDING} [ACTUATOR-EAE] Current Engine Readings: THROTTLE ("
+                + Engine.getThrottle() + "%)");
     }
-
 
     public void handleReading(int throttleCorrection) {
         System.out.println("[ACTUATOR-EAE] Received correction from [FC] (" + throttleCorrection + "%)");
@@ -124,21 +140,6 @@ public class EngineActuator implements Runnable {
 
         System.out.println("[ACTUATOR-EAE] Updating Engine Throttle...");
         System.out.println("[ACTUATOR-EAE] Current Engine Readings: THROTTLE (" + Engine.getThrottle() + "%)");
-    }
-
-    public void receiveReading() {
-        try {
-            actuatorChannel.basicConsume(ActuatorQueues.ENGINES.getName(), true, (consumerTag, msg) -> {
-                String m = new String(msg.getBody());
-
-                int throttleCorrection = Integer.parseInt(m);
-                handleReading(throttleCorrection);
-
-            }, consumerTag -> {
-            });
-        } catch (IOException ex) {
-            Logger.getLogger(EngineActuator.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
 
     public void receiveEmergencyReading() {
