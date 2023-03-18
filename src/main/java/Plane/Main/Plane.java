@@ -39,7 +39,7 @@ public class Plane {
     public static int currentSpeed = 300; // normal cruising speed in knots
     public static int currentDirection = 90; // normal direction in degrees (eastward)
     public static WeatherCondition currentWeather = WeatherCondition.CLEAR_SKY;// normal weather condition
-    public static final int FLYING_DURATION = 15;
+    public static final int FLYING_DURATION = 60;
     public static final int LANDING_DURATION = 5;
 
     public Plane() {
@@ -144,7 +144,7 @@ public class Plane {
         return currentWeather;
     }
 
-    public static void setCurrentWeather(WeatherCondition currentWeather) {
-        currentWeather = currentWeather;
+    public static void setCurrentWeather(WeatherCondition wc) {
+        currentWeather = wc;
     }
 }
