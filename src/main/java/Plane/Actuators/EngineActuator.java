@@ -99,14 +99,14 @@ public class EngineActuator implements Runnable {
     }
 
     private void handleLandingReading(int throttleCorrection) {
-        System.out.println("[ACTUATOR-EAE] Received correction from [FC] (" + throttleCorrection + "%)");
+        //System.out.println("{LANDING} [ACTUATOR-EAE] Received correction from [FC] (" + throttleCorrection + "%)");
 
         int newThrottle = Engine.getThrottle() + throttleCorrection;
         Engine.setThrottle(Math.max(0,newThrottle));
 
 
-        System.out.println("[ACTUATOR-EAE] Updating Engine Throttle...");
-        System.out.println("[ACTUATOR-EAE] Current Engine Readings: THROTTLE (" + Engine.getThrottle() + "%)");
+        //System.out.println("{LANDING} [ACTUATOR-EAE] Updating Engine Throttle...");
+        System.out.println("{LANDING} [ACTUATOR-EAE] Current Engine Readings: THROTTLE (" + Engine.getThrottle() + "%)");
     }
 
 

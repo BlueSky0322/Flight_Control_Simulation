@@ -110,8 +110,6 @@ public class FlightController implements Runnable {
                         Thread.sleep(1000);
                     } catch (InterruptedException ex) {
                         state = "landing";
-                        stopCabinPressureLossEvent();
-                        deployLandingGear();
                     }
                 }
             } else if (state.equals("landing")) {
@@ -139,7 +137,7 @@ public class FlightController implements Runnable {
         String msg = "true";
         try {
             actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.LANDING_GEAR.getKey(), false, null, msg.getBytes());
-            System.out.println("[CONTROL-FC] Sending landing gear to [ACTUATOR-LGALG] (" + msg + ")");
+            System.out.println("{LANDING} [CONTROL-FC] Sending landing gear to [ACTUATOR-LGALG] (" + msg + ")");
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -150,7 +148,7 @@ public class FlightController implements Runnable {
         String msg = "-30:down";
         try {
             actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.WING_FLAPS.getKey(), false, null, msg.getBytes());
-            System.out.println("[CONTROL-FC] Sending wing actuator data readings to [ACTUATOR-WAWF] (" + msg + ")");
+            System.out.println("{LANDING} [CONTROL-FC] Sending wing actuator data readings to [ACTUATOR-WAWF] (" + msg + ")");
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -161,7 +159,7 @@ public class FlightController implements Runnable {
         String msg = "0:neutral";
         try {
             actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.TAIL_FLAPS.getKey(), false, null, msg.getBytes());
-            System.out.println("[CONTROL-FC] Sending tail actuator data readings to [ACTUATOR-TATF] (" + msg + ")");
+            System.out.println("{LANDING} [CONTROL-FC] Sending tail actuator data readings to [ACTUATOR-TATF] (" + msg + ")");
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -173,16 +171,11 @@ public class FlightController implements Runnable {
         String msg = "-10";
         try {
             actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.ENGINES.getKey(), false, null, msg.getBytes());
-            System.out.println("[CONTROL-FC] Sending engine actuator data readings to [ACTUATOR-EAE] (" + msg + ")");
+            System.out.println("{LANDING} [CONTROL-FC] Sending engine actuator data readings to [ACTUATOR-EAE] (" + msg + ")");
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class
                     .getName()).log(Level.SEVERE, null, ex);
         }
-    }
-
-
-    public void deployLandingGear() {
-        System.out.println("==============DEPLOYING LANDING GEAR==================");
     }
 
     public void pauseReadings() {

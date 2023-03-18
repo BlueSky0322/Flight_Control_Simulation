@@ -84,6 +84,7 @@ public class TailActuator implements Runnable {
 
     private void receiveLandingReading() {
         try {
+            
             actuatorChannel.basicConsume(ActuatorQueues.TAIL_FLAPS.getName(), true, (x, msg) -> {
                 String m = new String(msg.getBody(), "UTF-8");
                 String[] readings = m.split(":");
@@ -100,12 +101,12 @@ public class TailActuator implements Runnable {
     }
 
     private void handleLandingReading(int angle, String direction) {
-        System.out.println("[ACTUATOR-TATF] Received absolute value from [FC]: ANGLE (" + angle + ") ; DIRECTION (" + direction + ")");
+        System.out.println("{LANDING} [ACTUATOR-TATF] Received absolute value from [FC]: ANGLE (" + angle + ") ; DIRECTION (" + direction + ")");
 
         TailFlap.setAngle(angle);
         TailFlap.setDirection(direction);
-        System.out.println("[ACTUATOR-TATF] Updating Tail Flap...");
-        System.out.println("[ACTUATOR-TATF] Current Tail Flap Readings: ANGLE (" + tf.getAngle() + ") ; DIRECTION (" + tf.getDirection() + ")");
+        System.out.println("{LANDING} [ACTUATOR-TATF] Updating Tail Flap...");
+        System.out.println("{LANDING} [ACTUATOR-TATF] Current Tail Flap Readings: ANGLE (" + tf.getAngle() + ") ; DIRECTION (" + tf.getDirection() + ")");
     }
 
     public void handleReading(int angleCorrection, String directionCorrection) {

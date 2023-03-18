@@ -9,7 +9,7 @@ package Plane.Components;
  * @author ryann
  */
 public class OxygenMask {
-    private static boolean isDeployed;
+    public static boolean isDeployed;
 
     public static boolean isIsDeployed() {
         return isDeployed;

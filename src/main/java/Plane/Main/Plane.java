@@ -39,20 +39,19 @@ public class Plane {
     public static int currentSpeed = 300; // normal cruising speed in knots
     public static int currentDirection = 90; // normal direction in degrees (eastward)
     public static WeatherCondition currentWeather = WeatherCondition.CLEAR_SKY;// normal weather condition
-
-    public static final int LANDING_DURATION = 10;
+    public static final int FLYING_DURATION = 15;
+    public static final int LANDING_DURATION = 5;
 
     public Plane() {
 
     }
-
 
     public static void main(String[] args) {
         Plane plane = new Plane();
 
         try {
             plane.start();
-            Thread.sleep(10000);
+            Thread.sleep(FLYING_DURATION * 1000);
         } catch (InterruptedException ex) {
             Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -109,7 +108,6 @@ public class Plane {
         Plane.lgThread.interrupt();
     }
 
-
     public static int getCurrentAltitude() {
         return currentAltitude;
     }
@@ -150,5 +148,3 @@ public class Plane {
         currentWeather = currentWeather;
     }
 }
-
-

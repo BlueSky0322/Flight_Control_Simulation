@@ -1,7 +1,5 @@
 package Plane.Components;
 
-import lombok.Data;
-
 public class LandingGear {
     private static boolean isDeployed;
 

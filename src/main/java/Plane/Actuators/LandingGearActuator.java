@@ -21,7 +21,7 @@ public class LandingGearActuator implements Runnable {
     private static String state = "normal";
 
     public static void deployLandingGear() {
-        System.out.println("[x] [ACTUATOR-OMA] Initializing LANDING_GEAR Actuator...");
+        System.out.println("[x] [ACTUATOR-LGALG] Initializing LANDING_GEAR Actuator...");
     }
 
 
@@ -31,7 +31,7 @@ public class LandingGearActuator implements Runnable {
             connection = factory.newConnection();
             actuatorChannel = connection.createChannel();
             //ConnectionManager.declareExchange(Exchanges.ACTUATOR.getName(), actuatorChannel);
-            System.out.println("[*] [ACTUATOR-OMA] OXYGEN MASK ACTUATOR: Started successfully.");
+            System.out.println("[*] [ACTUATOR-LGALG] LANDING GEAR ACTUATOR: Started successfully.");
         } catch (IOException | TimeoutException ex) {
             Logger.getLogger(OxygenMaskActuator.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -67,8 +67,8 @@ public class LandingGearActuator implements Runnable {
                 String m = new String(msg.getBody(), "UTF-8");
 
                 OxygenMask.setIsDeployed(Boolean.parseBoolean(m));
-
-                System.out.println("[ACTUATOR-LGA] Received landing instructions from [FC]");
+                System.out.println("{LANDING} [ACTUATOR-LGALG] Received landing instructions from [FC]");
+                System.out.println("{LANDING} [ACTUATOR-LGALG] Deploying Landing Gear...");
             }, x -> {
             });
         } catch (IOException ex) {

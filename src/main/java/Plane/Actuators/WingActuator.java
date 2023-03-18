@@ -90,9 +90,9 @@ public class WingActuator implements Runnable {
                 WingFlap.setAngle(Integer.parseInt(readings[0]));
                 WingFlap.setDirection(readings[1]);
 
-                System.out.println("[ACTUATOR-WAWF] Received correction from [FC]");
-                System.out.println("[ACTUATOR-WAWF] Updating Wing Flap...");
-                System.out.println("[ACTUATOR-WAWF] Current Wing Flap Readings: ANGLE (" + WingFlap.getAngle() + ") ; DIRECTION (" + WingFlap.getDirection() + ")");
+                System.out.println("{LANDING} [ACTUATOR-WAWF] Received corrections from [FC]");
+                System.out.println("{LANDING} [ACTUATOR-WAWF] Updating Wing Flap...");
+                System.out.println("{LANDING} [ACTUATOR-WAWF] Current Wing Flap Readings: ANGLE (" + WingFlap.getAngle() + ") ; DIRECTION (" + WingFlap.getDirection() + ")");
             }, x -> {
             });
         } catch (IOException ex) {

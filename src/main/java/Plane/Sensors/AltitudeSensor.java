@@ -48,7 +48,6 @@ public class AltitudeSensor implements Runnable {
 
     }
 
-
     @Override
     public void run() {
         while (!Thread.currentThread().isInterrupted()) {
@@ -84,7 +83,6 @@ public class AltitudeSensor implements Runnable {
         }
     }
 
-
     public int generateRandomAltitude() {
         // Generate a random altitude difference between -2000 and 2000 feet
         int altitudeDifference = (new Random()).nextInt(4001) - 2000;
@@ -103,19 +101,20 @@ public class AltitudeSensor implements Runnable {
     }
 
     /**
-     * Generates a decreasing altitude based on the current altitude state of the plane
+     * Generates a decreasing altitude based on the current altitude state of
+     * the plane
      *
      * @return
      */
     public int generateDecreasingAltitude() {
 
-        altitude -= OPTIMAL_ALTITUDE / (Plane.LANDING_DURATION-3);
+        altitude -= OPTIMAL_ALTITUDE / (Plane.LANDING_DURATION - 3);
         return Integer.max(0, altitude);
     }
 
     public void publishMessage(String msg) {
         try {
-            sensorsChannel.basicPublish(Exchanges.SENSOR.getName(), 
+            sensorsChannel.basicPublish(Exchanges.SENSOR.getName(),
                     RoutingKeys.ALTITUDE.getKey(), null, msg.getBytes());
             System.out.println("[SENSOR-AS] Altitude reading sent to [CONTROL-FC] (" + msg + ")");
         } catch (IOException ex) {
