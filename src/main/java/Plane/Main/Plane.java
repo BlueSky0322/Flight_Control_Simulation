@@ -34,16 +34,7 @@ public class Plane {
     private static Thread eaThread;
     private static Thread omaThread;
     private static Thread fcThread;
-//    private ExecutorService executorService = Executors.newScheduledThreadPool(8);
-//    private final AltitudeSensor as;
-//    private final CabinPressureSensor cps;
-//    private final SpeedDirectionSensor sds;
-//    private final WeatherSensor ws;
-//    private final WingActuator wa;
-//    private final TailActuator ta;
-//    private final EngineActuator ea;
-//    private final OxygenMaskActuator oma;
-//    private final FlightController fc;
+    private static Thread lgThread;
 
     public static int currentAltitude = 33000; //normal cruising currentAltitude of planes
     public static double currentPressure = 8.9; //normal cabin pressures
@@ -93,6 +84,7 @@ public class Plane {
         Plane.eaThread = new Thread(new EngineActuator());
         Plane.omaThread = new Thread(new OxygenMaskActuator());
         Plane.fcThread = new Thread(new FlightController());
+        Plane.lgThread = new Thread(new LandingGearActuator());
 
         Plane.altThread.start();
         Plane.cpsThread.start();
@@ -103,6 +95,7 @@ public class Plane {
         Plane.eaThread.start();
         Plane.omaThread.start();
         Plane.fcThread.start();
+        Plane.lgThread.start();
     }
 
     public static void stop() {
@@ -115,6 +108,7 @@ public class Plane {
         Plane.eaThread.interrupt();
         Plane.omaThread.interrupt();
         Plane.fcThread.interrupt();
+        Plane.lgThread.interrupt();
     }
 
 

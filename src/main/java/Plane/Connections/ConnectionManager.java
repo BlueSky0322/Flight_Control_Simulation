@@ -59,6 +59,7 @@ public class ConnectionManager {
             channel.queueDeclare(ActuatorQueues.WING_FLAPS.getName(), true, false, false, null);
             channel.queueDeclare(ActuatorQueues.TAIL_FLAPS.getName(), true, false, false, null);
             channel.queueDeclare(ActuatorQueues.ENGINES.getName(), true, false, false, null);
+            channel.queueDeclare(ActuatorQueues.LANDING_GEAR.getName(), true, false, false, null);
         } catch (IOException ex) {
             Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -92,7 +93,10 @@ public class ConnectionManager {
             channel.queueBind(ActuatorQueues.WING_FLAPS.getName(), Exchanges.ACTUATOR.getName(), RoutingKeys.WING_FLAPS.getKey());
             channel.queueBind(ActuatorQueues.TAIL_FLAPS.getName(), Exchanges.ACTUATOR.getName(), RoutingKeys.TAIL_FLAPS.getKey());
             channel.queueBind(ActuatorQueues.ENGINES.getName(), Exchanges.ACTUATOR.getName(), RoutingKeys.ENGINES.getKey());
-        } catch (IOException ex) {
+            channel.queueBind(ActuatorQueues.LANDING_GEAR.getName(), Exchanges.ACTUATOR.getName(), RoutingKeys.LANDING_GEAR.getKey());
+
+        }
+        catch (IOException ex) {
             Logger.getLogger(ConnectionManager.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
@@ -120,6 +124,7 @@ public class ConnectionManager {
             actuatorsChannel.queuePurge(ActuatorQueues.WING_FLAPS.getName());
             actuatorsChannel.queuePurge(ActuatorQueues.TAIL_FLAPS.getName());
             actuatorsChannel.queuePurge(ActuatorQueues.ENGINES.getName());
+            actuatorsChannel.queuePurge(ActuatorQueues.LANDING_GEAR.getName());
         } catch (IOException ex) {
             Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -131,7 +136,7 @@ public class ConnectionManager {
             sensorsChannel.queueUnbind(SensorQueues.CABIN.getName(), Exchanges.SENSOR.getName(), RoutingKeys.CABIN.getKey());
             sensorsChannel.queueUnbind(SensorQueues.SPEED_DIRECTION.getName(), Exchanges.SENSOR.getName(), RoutingKeys.SPEED_DIRECTION.getKey());
             sensorsChannel.queueUnbind(SensorQueues.WEATHER.getName(), Exchanges.SENSOR.getName(), RoutingKeys.WEATHER.getKey());
-            
+
             sensorsChannel.queueDelete(SensorQueues.ALTITUDE.getName());
             sensorsChannel.queueDelete(SensorQueues.CABIN.getName());
             sensorsChannel.queueDelete(SensorQueues.SPEED_DIRECTION.getName());
@@ -161,6 +166,7 @@ public class ConnectionManager {
             emergencyChannel.queueUnbind(ActuatorQueues.TAIL_FLAPS_TEMP.getName(), Exchanges.EMERGENCY.getName(), RoutingKeys.TAIL_FLAPS_TEMP.getKey());
             emergencyChannel.queueUnbind(ActuatorQueues.ENGINES_TEMP.getName(), Exchanges.EMERGENCY.getName(), RoutingKeys.ENGINES_TEMP.getKey());
             emergencyChannel.queueUnbind(ActuatorQueues.OXYGEN_MASKS.getName(), Exchanges.EMERGENCY.getName(), RoutingKeys.OXYGEN_MASKS.getKey());
+
 
             emergencyChannel.queueDelete(ActuatorQueues.WING_FLAPS_TEMP.getName());
             emergencyChannel.queueDelete(ActuatorQueues.TAIL_FLAPS_TEMP.getName());

@@ -12,6 +12,7 @@ import Plane.Connections.Exchanges;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -21,7 +22,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author ryann
  */
 public class OxygenMaskActuator implements Runnable {
@@ -50,9 +50,6 @@ public class OxygenMaskActuator implements Runnable {
             emergencyChannel = connection.createChannel();
             //ConnectionManager.declareExchange(Exchanges.ACTUATOR.getName(), actuatorChannel);
             System.out.println("[*] [ACTUATOR-OMA] OXYGEN MASK ACTUATOR: Started successfully.");
-
-            ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-            executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
         } catch (IOException | TimeoutException ex) {
             Logger.getLogger(OxygenMaskActuator.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -61,17 +58,23 @@ public class OxygenMaskActuator implements Runnable {
     @Override
     public void run() {
         while (!Thread.currentThread().isInterrupted()) {
-            if (state.equals("normal")) {
-                if (cabinPressureLossEvent) {
-                    receiveReading();
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ex) {
-                        state = "landing";
-                    }
-                    OxygenMask.setIsDeployed(false);
-                }
-            } else if (state.equals("landing")) {
+            if (cabinPressureLossEvent && OxygenMask.isDeployed){
+                continue;
+            }
+            if (state.equals("normal") && cabinPressureLossEvent) {
+                receiveReading();
+
+                OxygenMask.setIsDeployed(false);
+            }
+            try {
+                Thread.sleep(1000);
+                continue;
+            } catch (InterruptedException ex) {
+                state = "landing";
+            }
+            if (state.equals("landing")) {
+                OxygenMask.setIsDeployed(false);
+
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException ex) {
@@ -81,16 +84,16 @@ public class OxygenMaskActuator implements Runnable {
                 Thread.currentThread().interrupt();
             }
         }
-
     }
+
 
     public void receiveReading() {
         try {
             emergencyChannel.basicConsume(ActuatorQueues.OXYGEN_MASKS.getName(), true, (x, msg) -> {
                 String m = new String(msg.getBody(), "UTF-8");
-                
+
                 OxygenMask.setIsDeployed(Boolean.parseBoolean(m));
-               
+
                 System.out.println("[ACTUATOR-OMA] Received emergency instructions from [FC]");
                 System.out.println("[ACTUATOR-OMA] Deploying OXYGEN MASKS");
             }, x -> {

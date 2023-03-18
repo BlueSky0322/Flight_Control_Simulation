@@ -20,6 +20,7 @@ public enum RoutingKeys {
     WING_FLAPS_TEMP("wing_flaps_emer_key"),
     TAIL_FLAPS_TEMP("tail_flaps_emer_key"),
     FC_TO_ACTUATORS("flightcontroller.actuators"),
+    LANDING_GEAR("landing_gear_key"),
     OXYGEN_MASKS("oxygen.mask.key"),
     EMERGENCY("emergency");
     private final String value;

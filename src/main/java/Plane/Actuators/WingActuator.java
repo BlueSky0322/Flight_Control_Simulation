@@ -49,11 +49,7 @@ public class WingActuator implements Runnable {
             connection = factory.newConnection();
             actuatorChannel = connection.createChannel();
             emergencyChannel = connection.createChannel();
-            //ConnectionManager.declareExchange(Exchanges.ACTUATOR.getName(), actuatorChannel);
             System.out.println("[*] [ACTUATOR-WAWF] WING ACTUATOR: Started successfully.");
-
-            ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-            executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
         } catch (IOException | TimeoutException ex) {
             Logger.getLogger(WingActuator.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -74,6 +70,7 @@ public class WingActuator implements Runnable {
                 receiveEmergencyReading();
             } else if (state.equals("landing")) {
                 try {
+                    receiveLandingReading();
                     Thread.sleep(1000);
                 } catch (InterruptedException ex) {
                     state = "stopping";
@@ -81,6 +78,25 @@ public class WingActuator implements Runnable {
             } else {
                 Thread.currentThread().interrupt();
             }
+        }
+    }
+
+    private void receiveLandingReading() {
+        try {
+            actuatorChannel.basicConsume(ActuatorQueues.WING_FLAPS.getName(), true, (x, msg) -> {
+                String m = new String(msg.getBody(), "UTF-8");
+                String[] readings = m.split(":");
+
+                WingFlap.setAngle(Integer.parseInt(readings[0]));
+                WingFlap.setDirection(readings[1]);
+
+                System.out.println("[ACTUATOR-WAWF] Received correction from [FC]");
+                System.out.println("[ACTUATOR-WAWF] Updating Wing Flap...");
+                System.out.println("[ACTUATOR-WAWF] Current Wing Flap Readings: ANGLE (" + WingFlap.getAngle() + ") ; DIRECTION (" + WingFlap.getDirection() + ")");
+            }, x -> {
+            });
+        } catch (IOException ex) {
+            Logger.getLogger(WingActuator.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 

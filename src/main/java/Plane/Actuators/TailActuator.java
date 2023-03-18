@@ -50,9 +50,6 @@ public class TailActuator implements Runnable {
 
             emergencyChannel = connection.createChannel();
             System.out.println("[*] [ACTUATOR-TATF] TAIL ACTUATOR: Started successfully.");
-
-            ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-            executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
         } catch (IOException | TimeoutException ex) {
             Logger.getLogger(TailActuator.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -74,6 +71,7 @@ public class TailActuator implements Runnable {
                 receiveEmergencyReading();
             } else if (state.equals("landing")) {
                 try {
+                    receiveLandingReading();
                     Thread.sleep(1000);
                 } catch (InterruptedException ex) {
                     state = "stopping";
@@ -82,6 +80,32 @@ public class TailActuator implements Runnable {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    private void receiveLandingReading() {
+        try {
+            actuatorChannel.basicConsume(ActuatorQueues.TAIL_FLAPS.getName(), true, (x, msg) -> {
+                String m = new String(msg.getBody(), "UTF-8");
+                String[] readings = m.split(":");
+
+                int angleCorrection = Integer.parseInt(readings[0]);
+                String directionCorrection = readings[1];
+
+                handleLandingReading(angleCorrection, directionCorrection);
+            }, x -> {
+            });
+        } catch (IOException ex) {
+            Logger.getLogger(TailActuator.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private void handleLandingReading(int angle, String direction) {
+        System.out.println("[ACTUATOR-TATF] Received absolute value from [FC]: ANGLE (" + angle + ") ; DIRECTION (" + direction + ")");
+
+        TailFlap.setAngle(angle);
+        TailFlap.setDirection(direction);
+        System.out.println("[ACTUATOR-TATF] Updating Tail Flap...");
+        System.out.println("[ACTUATOR-TATF] Current Tail Flap Readings: ANGLE (" + tf.getAngle() + ") ; DIRECTION (" + tf.getDirection() + ")");
     }
 
     public void handleReading(int angleCorrection, String directionCorrection) {
