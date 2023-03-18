@@ -18,9 +18,15 @@ public class LandingGearActuator implements Runnable {
     private Connection connection;
     private Channel actuatorChannel;
     private static String state = "normal";
+    private static volatile boolean landingEvent = false;
 
     public static void deployLandingGear() {
+        landingEvent = true;
         System.out.println("[x] [ACTUATOR-LGALG] Initializing LANDING_GEAR Actuator...");
+    }
+
+    public static void stopDeployLandingGear() {
+        landingEvent = false;
     }
 
     public LandingGearActuator() {
@@ -38,7 +44,7 @@ public class LandingGearActuator implements Runnable {
     @Override
     public void run() {
         while (!Thread.currentThread().isInterrupted()) {
-            if (LandingGear.isDeployed) {
+            if (landingEvent && LandingGear.isDeployed) {
                 continue;
             }
             if (state.equals("normal")) {
@@ -50,10 +56,10 @@ public class LandingGearActuator implements Runnable {
                 }
 
             } else if (state.equals("landing")) {
-                LandingGear.setIsDeployed(false);
+                receiveLandingReading();
                 try {
-                    receiveLandingReading();
                     Thread.sleep(1000);
+                    continue;
                 } catch (InterruptedException ex) {
                     state = "stopping";
                 }
@@ -77,7 +83,7 @@ public class LandingGearActuator implements Runnable {
         } catch (IOException ex) {
             Logger.getLogger(OxygenMaskActuator.class.getName()).log(Level.SEVERE, null, ex);
         }
-        LandingGear.setIsDeployed(true);
+        //LandingGear.setIsDeployed(true);
     }
 
 }

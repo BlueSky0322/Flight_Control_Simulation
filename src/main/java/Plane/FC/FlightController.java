@@ -5,9 +5,11 @@
 package Plane.FC;
 
 import Plane.Actuators.EngineActuator;
+import Plane.Actuators.LandingGearActuator;
 import Plane.Actuators.OxygenMaskActuator;
 import Plane.Actuators.TailActuator;
 import Plane.Actuators.WingActuator;
+import Plane.Components.LandingGear;
 import Plane.Connections.ConnectionManager;
 import Plane.Connections.Exchanges;
 import Plane.Connections.RoutingKeys;
@@ -41,6 +43,7 @@ public class FlightController implements Runnable {
 
     private static String state = "normal";
     private volatile boolean emergencyEvent = false;
+    private volatile boolean fclandingEvent = false;
 
     public void startCabinPressureLossEvent() {
         emergencyEvent = true;
@@ -68,7 +71,6 @@ public class FlightController implements Runnable {
         System.out.println("[x] [CONTROL-FC] EMERGENCY PROTOCOL DISABLED!");
     }
 
-
     public FlightController() {
         try {
             factory = new ConnectionFactory();
@@ -95,9 +97,10 @@ public class FlightController implements Runnable {
 
     @Override
     public void run() {
-
+        //LandingGear.setIsDeployed(false);
         while (!Thread.currentThread().isInterrupted()) {
             if (state.equals("normal")) {
+                //LandingGear.setIsDeployed(true);
                 if (!emergencyEvent) {
                     receiveAltitudeReading();
                     receiveCabinPressureReading();
@@ -110,9 +113,10 @@ public class FlightController implements Runnable {
                         Thread.sleep(1000);
                     } catch (InterruptedException ex) {
                         state = "landing";
+                        fclandingEvent = true;
                     }
                 }
-            } else if (state.equals("landing")) {
+            } else if (state.equals("landing") && fclandingEvent) {
                 engageLandingRoutine();
                 try {
                     Thread.sleep(1000);
@@ -130,14 +134,19 @@ public class FlightController implements Runnable {
         sendAbsoluteLandingDataToWingActuator();
         sendAbsoluteLandingDataToTailActuator();
         sendAbsoluteLandingDataToEngineActuator();
-        sendLandingSignalToLandingGear();
+        if (!LandingGear.isDeployed) {
+            LandingGearActuator.deployLandingGear();
+            sendLandingSignalToLandingGear();
+            LandingGearActuator.stopDeployLandingGear();
+        }
     }
 
     private void sendLandingSignalToLandingGear() {
         String msg = "true";
         try {
             actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.LANDING_GEAR.getKey(), false, null, msg.getBytes());
-            System.out.println("{LANDING} [CONTROL-FC] Sending landing gear to [ACTUATOR-LGALG] (" + msg + ")");
+            System.out.println("{LANDING} [CONTROL-FC] Sending landing gear command to [ACTUATOR-LGALG] (" + msg + ")");
+
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -201,7 +210,6 @@ public class FlightController implements Runnable {
         }
     }
 
-
     public void publishEmergencyReadings() {
         try {
             String targetWACorrection = "90:up";
@@ -234,16 +242,16 @@ public class FlightController implements Runnable {
 
     public void receiveAltitudeReading() {
         try {
-            sensorsChannel.basicConsume(SensorQueues.ALTITUDE.getName(), 
+            sensorsChannel.basicConsume(SensorQueues.ALTITUDE.getName(),
                     true, ((consumerTag, message) -> {
-                String msg = new String(message.getBody(), "UTF-8");
-                Plane.currentAltitude = Integer.parseInt(msg);
-                System.out.println(
-                        "[CONTROL-FC] Received altitude reading from [SENSOR-AS] (" 
+                        String msg = new String(message.getBody(), "UTF-8");
+                        Plane.currentAltitude = Integer.parseInt(msg);
+                        System.out.println(
+                                "[CONTROL-FC] Received altitude reading from [SENSOR-AS] ("
                                 + msg + ")");
 
-            }), consumerTag -> {
-            });
+                    }), consumerTag -> {
+                    });
         } catch (IOException ex) {
             Logger.getLogger(FlightController.class.getName())
                     .log(Level.SEVERE, null, ex);
@@ -312,7 +320,6 @@ public class FlightController implements Runnable {
     /*
         PROCESS READINGS
      */
-
     public void processAltitudeOutOfRange(int currentAltitude) {
         int safeAltitude = 33000;
         int altitudeMargin = 400;
@@ -329,7 +336,11 @@ public class FlightController implements Runnable {
             directionCorrection = "neutral";
         }
 
-        String wingFlapCorrection = String.join("", String.valueOf(angleCorrection), ":", directionCorrection);
+        String wingFlapCorrection
+                = String.join("",
+                        String.valueOf(angleCorrection),
+                        ":",
+                        directionCorrection);
         sendWingActuatorData(wingFlapCorrection);
     }
 
@@ -389,7 +400,7 @@ public class FlightController implements Runnable {
 
     /*
         Send corrections
-    */
+     */
     public void sendWingActuatorData(String msg) {
         try {
             actuatorsChannel.basicPublish(Exchanges.ACTUATOR.getName(), RoutingKeys.WING_FLAPS.getKey(), false, null, msg.getBytes());

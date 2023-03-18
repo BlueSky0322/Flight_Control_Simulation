@@ -1,6 +1,7 @@
 package Plane.Components;
 
 public class LandingGear {
+
     public static boolean isDeployed;
 
     public static boolean isIsDeployed() {
