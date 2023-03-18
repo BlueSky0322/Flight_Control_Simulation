@@ -15,6 +15,8 @@ import Plane.Utils.WeatherCondition;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,7 +41,7 @@ public class Plane {
     public static int currentSpeed = 300; // normal cruising speed in knots
     public static int currentDirection = 90; // normal direction in degrees (eastward)
     public static WeatherCondition currentWeather = WeatherCondition.CLEAR_SKY;// normal weather condition
-    public static final int FLYING_DURATION = 60;
+    public static final int FLYING_DURATION = 5;
     public static final int LANDING_DURATION = 5;
 
     public Plane() {
@@ -83,16 +85,17 @@ public class Plane {
         Plane.fcThread = new Thread(new FlightController());
         Plane.lgThread = new Thread(new LandingGearActuator());
 
-        Plane.altThread.start();
-        Plane.cpsThread.start();
-        Plane.sdsThread.start();
-        Plane.wsThread.start();
-        Plane.waThread.start();
-        Plane.taThread.start();
-        Plane.eaThread.start();
-        Plane.omaThread.start();
-        Plane.fcThread.start();
-        Plane.lgThread.start();
+        ExecutorService executorService = Executors.newFixedThreadPool(20);
+        executorService.execute(Plane.altThread);
+        executorService.execute(Plane.cpsThread);
+        executorService.execute(Plane.sdsThread);
+        executorService.execute(Plane.wsThread);
+        executorService.execute(Plane.waThread);
+        executorService.execute(Plane.taThread);
+        executorService.execute(Plane.eaThread);
+        executorService.execute(Plane.omaThread);
+        executorService.execute(Plane.fcThread);
+        executorService.execute(Plane.lgThread);
     }
 
     public static void interrupt() {
