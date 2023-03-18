@@ -5,18 +5,12 @@
 package Plane.Actuators;
 
 import Plane.Components.OxygenMask;
-import Plane.Components.WingFlap;
 import Plane.Connections.ActuatorQueues;
-import Plane.Connections.ConnectionManager;
-import Plane.Connections.Exchanges;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 import java.io.IOException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,7 +22,6 @@ public class OxygenMaskActuator implements Runnable {
 
     private ConnectionFactory factory;
     private Connection connection;
-    private Channel actuatorChannel;
     private Channel emergencyChannel;
     private static volatile boolean cabinPressureLossEvent = false;
     private static String state = "normal";

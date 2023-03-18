@@ -13,17 +13,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class LandingGearActuator implements Runnable {
+
     private ConnectionFactory factory;
     private Connection connection;
     private Channel actuatorChannel;
-    private Channel emergencyChannel;
-    private static volatile boolean cabinPressureLossEvent = false;
     private static String state = "normal";
 
     public static void deployLandingGear() {
         System.out.println("[x] [ACTUATOR-LGALG] Initializing LANDING_GEAR Actuator...");
     }
-
 
     public LandingGearActuator() {
         try {
@@ -40,7 +38,11 @@ public class LandingGearActuator implements Runnable {
     @Override
     public void run() {
         while (!Thread.currentThread().isInterrupted()) {
+            if (LandingGear.isDeployed) {
+                continue;
+            }
             if (state.equals("normal")) {
+                LandingGear.setIsDeployed(false);
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException ex) {
@@ -48,6 +50,7 @@ public class LandingGearActuator implements Runnable {
                 }
 
             } else if (state.equals("landing")) {
+                LandingGear.setIsDeployed(false);
                 try {
                     receiveLandingReading();
                     Thread.sleep(1000);
@@ -66,7 +69,7 @@ public class LandingGearActuator implements Runnable {
             actuatorChannel.basicConsume(ActuatorQueues.LANDING_GEAR.getName(), true, (x, msg) -> {
                 String m = new String(msg.getBody(), "UTF-8");
 
-                OxygenMask.setIsDeployed(Boolean.parseBoolean(m));
+                LandingGear.setIsDeployed(Boolean.parseBoolean(m));
                 System.out.println("{LANDING} [ACTUATOR-LGALG] Received landing instructions from [FC]");
                 System.out.println("{LANDING} [ACTUATOR-LGALG] Deploying Landing Gear...");
             }, x -> {
@@ -78,4 +81,3 @@ public class LandingGearActuator implements Runnable {
     }
 
 }
-
