@@ -62,7 +62,7 @@ public class Auth {
 
     public static boolean isValidItemName(String itemName) {
         // accept alphanumeric and space, with at least 5-25 characters
-        return itemName.matches("^[a-zA-Z0-9\\\\s_-]{5,50}$");
+        return itemName.matches("^[a-zA-Z0-9\\s\\p{Punct}]{5,50}$");
     }
 
     public static boolean isValidUnitPrice(String unitPrice) {
