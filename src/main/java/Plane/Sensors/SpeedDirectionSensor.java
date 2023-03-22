@@ -4,21 +4,13 @@
  */
 package Plane.Sensors;
 
-import Plane.Connections.ConnectionManager;
 import Plane.Connections.Exchanges;
 import Plane.Connections.RoutingKeys;
-import Plane.FC.FlightController;
 import Plane.Main.Plane;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 
 import java.io.IOException;
 import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,26 +22,13 @@ public class SpeedDirectionSensor implements Runnable {
     private Channel sensorsChannel;
     private String state = "normal";
     private static volatile boolean pause = false;
-
     private static int speed;
-
     private static int direction;
-
     private static final int MAX_SPEED = 570;
-
     private static final int MIN_SPEED = 130;
 
-    public static void pauseSensor() {
-        pause = true;
-        System.out.println("[x] [SENSOR-SDS] Pausing SPEED_DIRECTION Sensor...");
-    }
-
-    public static void unpauseSensor() {
-        pause = false;
-        System.out.println("[x] [SENSOR-SDS] Resuming SPEED_DIRECTION Sensor...");
-    }
-
     public SpeedDirectionSensor() {
+        //initialise connection to sensorsChannel
         sensorsChannel = SensorUtils.createChannel();
         System.out.println("[*] [SENSOR-SDS] SPEED DIRECTION SENSOR: Started successfully.");
 
@@ -68,18 +47,19 @@ public class SpeedDirectionSensor implements Runnable {
         }
     }
 
-    private void generateLandingReadings() {
-        int speedReading = generateDecreasingSpeed();
-        String reading = speedReading + ":" + direction;
-        publishMessage(reading);
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            state = "stopping";
-        }
+    //pausing the sensor
+    public static void pauseSensor() {
+        pause = true;
+        System.out.println("[x] [SENSOR-SDS] Pausing SPEED_DIRECTION Sensor...");
     }
 
+    //unpausing the sensor
+    public static void unpauseSensor() {
+        pause = false;
+        System.out.println("[x] [SENSOR-SDS] Resuming SPEED_DIRECTION Sensor...");
+    }
 
+    //use to handle cabin pressure loss event using "pause" boolean
     public void generateReadings() {
         if (!pause) {
             int speedReading = generateRandomSpeedChange();
@@ -91,9 +71,10 @@ public class SpeedDirectionSensor implements Runnable {
             } catch (InterruptedException ex) {
                 state = "landing";
             }
-        }
+        }//else, pause sensor readings, only maintain communication between FC and actuators
     }
 
+    //generate random direction deviations
     public int generateRandomDeviation() {
         // Set the minimum and maximum degrees of deviation
         int minDeviation = -25;
@@ -112,6 +93,7 @@ public class SpeedDirectionSensor implements Runnable {
         return direction;
     }
 
+    //generate speed changes
     public int generateRandomSpeedChange() {
         // Set the minimum and maximum normal speed changes for a commercial airliner
         int minSpeedChange = -25; // knots
@@ -130,15 +112,28 @@ public class SpeedDirectionSensor implements Runnable {
         return speed;
     }
 
-    /**
-     * Generates a decreasing speed for landing purposes
-     */
+    
+    //handles the landing of the plane, generates decreasing sensor values until 0
+    private void generateLandingReadings() {
+        int speedReading = generateDecreasingSpeed();
+        String reading = speedReading + ":" + direction;
+        publishMessage(reading);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            state = "stopping";
+        }
+    }
+    
+    // Generates a decreasing speed of the plane
     private int generateDecreasingSpeed() {
         speed -= (new Random()).nextInt(MAX_SPEED) / (Plane.LANDING_DURATION - 3);
         speed = Math.max(0, speed);
         return speed;
     }
 
+    
+    // Producer to send messages to FC
     public void publishMessage(String msg) {
         try {
             sensorsChannel.basicPublish(Exchanges.SENSOR.getName(), RoutingKeys.SPEED_DIRECTION.getKey(), null, msg.getBytes());

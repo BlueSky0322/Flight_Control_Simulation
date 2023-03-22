@@ -4,7 +4,6 @@ import Plane.Connections.ConnectionManager;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -25,7 +24,7 @@ public class SensorUtils {
             ConnectionFactory factory = new ConnectionFactory();
             Connection connection = factory.newConnection();
             sensorsChannel = connection.createChannel();
-            ConnectionManager.purgeQueues(sensorsChannel, sensorsChannel);
+            ConnectionManager.purgeSensorQueues(sensorsChannel);
         } catch (IOException | TimeoutException e) {
             Logger.getLogger(CabinPressureSensor.class.getName()).log(Level.SEVERE, null, e);
         }

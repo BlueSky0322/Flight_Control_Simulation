@@ -4,17 +4,12 @@
  */
 package Plane.Sensors;
 
-import Plane.Connections.ConnectionManager;
 import Plane.Connections.Exchanges;
 import Plane.Connections.RoutingKeys;
 import Plane.Main.Plane;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-
 import java.io.IOException;
 import java.util.Random;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -29,17 +24,8 @@ public class AltitudeSensor implements Runnable {
     private static final int OPTIMAL_ALTITUDE = 23000;
     private static volatile boolean pause = false;
 
-    public static void pauseSensor() {
-        pause = true;
-        System.out.println("[x] [SENSOR-AS] Pausing ALTITUDE Sensor...");
-    }
-
-    public static void unpauseSensor() {
-        pause = false;
-        System.out.println("[x] [SENSOR-AS] Resuming ALTITUDE Sensor...");
-    }
-
     public AltitudeSensor() {
+        //initialise connection to sensorsChannel
         sensorsChannel = SensorUtils.createChannel();
         System.out.println("[*] [SENSOR-AS] ALTITUDE SENSOR: Started successfully.");
 
@@ -58,18 +44,23 @@ public class AltitudeSensor implements Runnable {
         }
     }
 
-    public void generateLandingReadings() {
-        int reading = generateDecreasingAltitude();
-        publishMessage(Integer.toString(reading));
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            state = "stopping";
-        }
+    
+    //pausing the sensor
+    public static void pauseSensor() {
+        pause = true;
+        System.out.println("[x] [SENSOR-AS] Pausing ALTITUDE Sensor...");
     }
 
+    //unpausing the sensor
+    public static void unpauseSensor() {
+        pause = false;
+        System.out.println("[x] [SENSOR-AS] Resuming ALTITUDE Sensor...");
+    }
+
+    //use to handle cabin pressure loss event using "pause" boolean
     public void generateReadings() {
         if (!pause) {
+            //not paused, generate readings, sensors communicate normally
             int reading = generateRandomAltitude();
             publishMessage(Integer.toString(reading));
             try {
@@ -78,8 +69,10 @@ public class AltitudeSensor implements Runnable {
                 state = "landing";
             }
         }
+        //else, pause sensor readings, only maintain communication between FC and actuators
     }
 
+    //generate random altitude readings
     public int generateRandomAltitude() {
         // Generate a random altitude difference between -2000 and 2000 feet
         int altitudeDifference = (new Random()).nextInt(4001) - 2000;
@@ -97,18 +90,24 @@ public class AltitudeSensor implements Runnable {
         return altitude;
     }
 
-    /**
-     * Generates a decreasing altitude based on the current altitude state of
-     * the plane
-     *
-     * @return
-     */
-    public int generateDecreasingAltitude() {
+    //handles the landing of the plane, generates decreasing sensor values until 0
+    public void generateLandingReadings() {
+        int reading = generateDecreasingAltitude();
+        publishMessage(Integer.toString(reading));
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            state = "stopping";
+        }
+    }
 
+    // Generates a decreasing altitude based on the current altitude state of the plane
+    public int generateDecreasingAltitude() {
         altitude -= OPTIMAL_ALTITUDE / (Plane.LANDING_DURATION - 3);
         return Integer.max(0, altitude);
     }
 
+    // Producer to send messages to FC
     public void publishMessage(String msg) {
         try {
             sensorsChannel.basicPublish(Exchanges.SENSOR.getName(),

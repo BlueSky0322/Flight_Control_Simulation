@@ -4,21 +4,11 @@
  */
 package Plane.Sensors;
 
-import Plane.Connections.ConnectionManager;
 import Plane.Connections.Exchanges;
 import Plane.Connections.RoutingKeys;
-import Plane.FC.FlightController;
 import Plane.Main.Plane;
-import Plane.Utils.WeatherCondition;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import java.io.IOException;
-import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,20 +20,10 @@ public class WeatherSensor implements Runnable {
 
     private Channel sensorsChannel;
     private static volatile boolean pause = false;
-
     private static String state = "normal";
 
-    public static void pauseSensor() {
-        pause = true;
-        System.out.println("[x] [SENSOR-WS] Pausing WEATHER Sensor...");
-    }
-
-    public static void unpauseSensor() {
-        pause = false;
-        System.out.println("[x] [SENSOR-WS] Resuming WEATHER Sensor...");
-    }
-
     public WeatherSensor() {
+        //initialise connection to sensorsChannel
         sensorsChannel = SensorUtils.createChannel();
         System.out.println("[*] [SENSOR-AS] ALTITUDE SENSOR: Started successfully.");
     }
@@ -61,18 +41,22 @@ public class WeatherSensor implements Runnable {
         }
     }
 
-    private void generateLandingReadings() {
-
-        publishMessage(Integer.toString(WeatherCondition.CLEAR_SKY.getCode()));
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            state = "stopping";
-        }
+    //pausing sensor
+    public static void pauseSensor() {
+        pause = true;
+        System.out.println("[x] [SENSOR-WS] Pausing WEATHER Sensor...");
     }
 
+    //unpausing sensor
+    public static void unpauseSensor() {
+        pause = false;
+        System.out.println("[x] [SENSOR-WS] Resuming WEATHER Sensor...");
+    }
+
+    //use to handle cabin pressure loss event using "pause" boolean
     public void generateReadings() {
         if (!pause) {
+            //not paused, sensors communicate normally
             int reading = generateEnvironmentReading();
             WeatherCondition newCondition = determineWeatherCondition(reading);
             WeatherCondition currentWeatherCondition = Plane.getCurrentWeather();
@@ -85,9 +69,10 @@ public class WeatherSensor implements Runnable {
             } catch (InterruptedException ex) {
                 state = "landing";
             }
-        }
+        }//else, pause sensor readings, only maintain communication between FC and actuators
     }
 
+    //determine the weather condition based on the environment readings
     public WeatherCondition determineWeatherCondition(int reading) {
         // Set the thresholds for clear skies, turbulence, and icing
         int icingThreshold = 20;
@@ -112,6 +97,7 @@ public class WeatherSensor implements Runnable {
         }
     }
 
+    //generate environment readings
     private int generateEnvironmentReading() {
         // Define the probabilities for each range of values
         double probLow = 0.1;
@@ -135,6 +121,17 @@ public class WeatherSensor implements Runnable {
         return reading;
     }
 
+    //Generates a clear-sky reading to FC during landing
+    private void generateLandingReadings() {
+        publishMessage(Integer.toString(WeatherCondition.CLEAR_SKY.getCode()));
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            state = "stopping";
+        }
+    }
+
+    // Producer to send messages to FC
     public void publishMessage(String msg) {
         try {
             sensorsChannel.basicPublish(Exchanges.SENSOR.getName(), RoutingKeys.WEATHER.getKey(), null, msg.getBytes("UTF-8"));

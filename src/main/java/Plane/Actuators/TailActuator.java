@@ -7,14 +7,7 @@ package Plane.Actuators;
 import Plane.Components.TailFlap;
 import Plane.Connections.ActuatorQueues;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-
 import java.io.IOException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,37 +16,15 @@ import java.util.logging.Logger;
  */
 public class TailActuator implements Runnable {
 
-    private ConnectionFactory factory;
-    private Connection connection;
     private Channel actuatorChannel;
     private Channel emergencyChannel;
-    private TailFlap tf;
     private static volatile boolean cabinPressureLossEvent = false;
     private static String state = "normal";
 
-    public static void pauseActuator() {
-        cabinPressureLossEvent = true;
-        System.out.println("[x] [ACTUATOR-TATF] Pausing TAIL Actuator...");
-    }
-
-    public static void unpauseActuator() {
-        cabinPressureLossEvent = false;
-        System.out.println("[x] [ACTUATOR-TATF] Resuming TAIL Actuator...");
-    }
-
     public TailActuator() {
-
-        try {
-            factory = new ConnectionFactory();
-            connection = factory.newConnection();
-            actuatorChannel = connection.createChannel();
-
-            emergencyChannel = connection.createChannel();
-            System.out.println("[*] [ACTUATOR-TATF] TAIL ACTUATOR: Started successfully.");
-        } catch (IOException | TimeoutException ex) {
-            Logger.getLogger(TailActuator.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
+        actuatorChannel = ActuatorUtils.createNormalChannel();
+        emergencyChannel = ActuatorUtils.createEmergencyChannel();
+        System.out.println("[*] [ACTUATOR-TATF] TAIL ACTUATOR: Started successfully.");
     }
 
     @Override
@@ -82,9 +53,11 @@ public class TailActuator implements Runnable {
         }
     }
 
+    //CONSUMER FOR CORRECTIONS SENT FROM FC    
+    //receive landing readings only
     private void receiveLandingReading() {
         try {
-            
+
             actuatorChannel.basicConsume(ActuatorQueues.TAIL_FLAPS.getName(), true, (x, msg) -> {
                 String m = new String(msg.getBody(), "UTF-8");
                 String[] readings = m.split(":");
@@ -100,26 +73,17 @@ public class TailActuator implements Runnable {
         }
     }
 
+    //set udpated tail flap fields
     private void handleLandingReading(int angle, String direction) {
         System.out.println("{LANDING} [ACTUATOR-TATF] Received absolute value from [FC]: ANGLE (" + angle + ") ; DIRECTION (" + direction + ")");
 
         TailFlap.setAngle(angle);
         TailFlap.setDirection(direction);
         System.out.println("{LANDING} [ACTUATOR-TATF] Updating Tail Flap...");
-        System.out.println("{LANDING} [ACTUATOR-TATF] Current Tail Flap Readings: ANGLE (" + tf.getAngle() + ") ; DIRECTION (" + tf.getDirection() + ")");
+        System.out.println("{LANDING} [ACTUATOR-TATF] Current Tail Flap Readings: ANGLE (" + TailFlap.getAngle() + ") ; DIRECTION (" + TailFlap.getDirection() + ")");
     }
 
-    public void handleReading(int angleCorrection, String directionCorrection) {
-        System.out.println("[ACTUATOR-TATF] Received correction from [FC]: ANGLE (" + angleCorrection + ") ; DIRECTION (" + directionCorrection + ")");
-
-        int newAngle = TailFlap.getAngle() + angleCorrection;
-        int correctedAngle = Math.min(50, Math.max(-50, newAngle));
-        TailFlap.setAngle(correctedAngle);
-        TailFlap.setDirection(directionCorrection);
-        System.out.println("[ACTUATOR-TATF] Updating Tail Flap...");
-        System.out.println("[ACTUATOR-TATF] Current Tail Flap Readings: ANGLE (" + tf.getAngle() + ") ; DIRECTION (" + tf.getDirection() + ")");
-    }
-
+    //receive normal readings
     public void receiveReading() {
         try {
             actuatorChannel.basicConsume(ActuatorQueues.TAIL_FLAPS.getName(), true, (x, msg) -> {
@@ -137,6 +101,19 @@ public class TailActuator implements Runnable {
         }
     }
 
+    //set udpated tail flap fields
+    public void handleReading(int angleCorrection, String directionCorrection) {
+        System.out.println("[ACTUATOR-TATF] Received correction from [FC]: ANGLE (" + angleCorrection + ") ; DIRECTION (" + directionCorrection + ")");
+
+        int newAngle = TailFlap.getAngle() + angleCorrection;
+        int correctedAngle = Math.min(50, Math.max(-50, newAngle));
+        TailFlap.setAngle(correctedAngle);
+        TailFlap.setDirection(directionCorrection);
+        System.out.println("[ACTUATOR-TATF] Updating Tail Flap...");
+        System.out.println("[ACTUATOR-TATF] Current Tail Flap Readings: ANGLE (" + TailFlap.getAngle() + ") ; DIRECTION (" + TailFlap.getDirection() + ")");
+    }
+
+    //receive emergency readings for cabin pressure loss event
     public void receiveEmergencyReading() {
         try {
             emergencyChannel.basicConsume(ActuatorQueues.TAIL_FLAPS_TEMP.getName(), true, (x, msg) -> {
@@ -153,5 +130,17 @@ public class TailActuator implements Runnable {
         } catch (IOException ex) {
             Logger.getLogger(TailActuator.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    //pausing the actuators
+    public static void pauseActuator() {
+        cabinPressureLossEvent = true;
+        System.out.println("[x] [ACTUATOR-TATF] Pausing TAIL Actuator...");
+    }
+
+    //resuming the actuators
+    public static void unpauseActuator() {
+        cabinPressureLossEvent = false;
+        System.out.println("[x] [ACTUATOR-TATF] Resuming TAIL Actuator...");
     }
 }

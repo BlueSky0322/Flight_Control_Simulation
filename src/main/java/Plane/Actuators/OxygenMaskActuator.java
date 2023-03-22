@@ -7,11 +7,7 @@ package Plane.Actuators;
 import Plane.Components.OxygenMask;
 import Plane.Connections.ActuatorQueues;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-
 import java.io.IOException;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,38 +16,19 @@ import java.util.logging.Logger;
  */
 public class OxygenMaskActuator implements Runnable {
 
-    private ConnectionFactory factory;
-    private Connection connection;
     private Channel emergencyChannel;
     private static volatile boolean cabinPressureLossEvent = false;
     private static String state = "normal";
 
-    public static void deployOxygenMasks() {
-        cabinPressureLossEvent = true;
-        System.out.println("[x] [ACTUATOR-OMA] Initializing OXYGEN_MASK Actuator...");
-    }
-
-    public static void stopDeployOxygenMasks() {
-        cabinPressureLossEvent = false;
-        System.out.println("[x] [ACTUATOR-OMA] Reverting to normal...");
-    }
-
     public OxygenMaskActuator() {
-        try {
-            factory = new ConnectionFactory();
-            connection = factory.newConnection();
-            emergencyChannel = connection.createChannel();
-            //ConnectionManager.declareExchange(Exchanges.ACTUATOR.getName(), actuatorChannel);
-            System.out.println("[*] [ACTUATOR-OMA] OXYGEN MASK ACTUATOR: Started successfully.");
-        } catch (IOException | TimeoutException ex) {
-            Logger.getLogger(OxygenMaskActuator.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        emergencyChannel = ActuatorUtils.createEmergencyChannel();
+        System.out.println("[*] [ACTUATOR-OMA] OXYGEN MASK ACTUATOR: Started successfully.");
     }
 
     @Override
     public void run() {
         while (!Thread.currentThread().isInterrupted()) {
-            if (cabinPressureLossEvent && OxygenMask.isDeployed){
+            if (cabinPressureLossEvent && OxygenMask.isDeployed) {
                 continue;
             }
             if (state.equals("normal") && cabinPressureLossEvent) {
@@ -79,7 +56,8 @@ public class OxygenMaskActuator implements Runnable {
         }
     }
 
-
+    //CONSUMER FOR CORRECTIONS SENT FROM FC    
+    //receive emergency readings only
     public void receiveReading() {
         try {
             emergencyChannel.basicConsume(ActuatorQueues.OXYGEN_MASKS.getName(), true, (x, msg) -> {
@@ -94,6 +72,18 @@ public class OxygenMaskActuator implements Runnable {
         } catch (IOException ex) {
             Logger.getLogger(OxygenMaskActuator.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    //start the oxygen mask actuator
+    public static void deployOxygenMasks() {
+        cabinPressureLossEvent = true;
+        System.out.println("[x] [ACTUATOR-OMA] Initializing OXYGEN_MASK Actuator...");
+    }
+
+    //stop the oxygen mask actuator (deploy once)
+    public static void stopDeployOxygenMasks() {
+        cabinPressureLossEvent = false;
+        System.out.println("[x] [ACTUATOR-OMA] Reverting to normal...");
     }
 
 }

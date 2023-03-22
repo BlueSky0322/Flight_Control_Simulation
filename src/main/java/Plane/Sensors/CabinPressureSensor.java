@@ -4,22 +4,12 @@
  */
 package Plane.Sensors;
 
-import Plane.Connections.ConnectionManager;
 import Plane.Connections.Exchanges;
 import Plane.Connections.RoutingKeys;
-import Plane.Connections.SensorQueues;
-import Plane.FC.FlightController;
 import Plane.Main.Plane;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-
 import java.io.IOException;
 import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,30 +21,15 @@ public class CabinPressureSensor implements Runnable {
     private Channel sensorsChannel;
     private static volatile boolean pause = false;
     private String state = "normal";
-    private static final double OPTIMAL_PRESSURE = 8.9;
-
     private static final double MIN_PRESSURE = 4.3;
-
     private static final double MAX_PRESSURE = 12.3;
     private static double pressure = 8.9;
 
-
-    public static void pauseSensor() {
-        pause = true;
-        System.out.println("[x] [SENSOR-CPS] Pausing CABIN_PRESSURE Sensor...");
-    }
-
-    public static void unpauseSensor() {
-        pause = false;
-        System.out.println("[x] [SENSOR-CPS] Resuming CABIN_PRESSURE Sensor...");
-    }
-
     public CabinPressureSensor() {
-
+        //initialise connection to sensorsChannel
         sensorsChannel = SensorUtils.createChannel();
         System.out.println("[*] [SENSOR-CPS] CABIN PRESSURE SENSOR: Started successfully.");
     }
-
 
     @Override
     public void run() {
@@ -68,9 +43,24 @@ public class CabinPressureSensor implements Runnable {
             }
         }
     }
+    
+    
+    //pausing the sensor
+    public static void pauseSensor() {
+        pause = true;
+        System.out.println("[x] [SENSOR-CPS] Pausing CABIN_PRESSURE Sensor...");
+    }
 
+    //unpausing the sensor
+    public static void unpauseSensor() {
+        pause = false;
+        System.out.println("[x] [SENSOR-CPS] Resuming CABIN_PRESSURE Sensor...");
+    }
+
+    //use to handle cabin pressure loss event using "pause" boolean
     public void generateReadings() {
         if (!pause) {
+            //not paused, sensors communicate normally
             double reading = generateRandomPressureChange();
             publishMessage(Double.toString(reading));
             try {
@@ -78,20 +68,10 @@ public class CabinPressureSensor implements Runnable {
             } catch (InterruptedException ex) {
                 state = "landing";
             }
-        }
+        }//else, pause sensor readings, only maintain communication between FC and actuators
     }
 
-    public void generateLandingReadings() {
-        double reading = generateDecreasingPressureChange();
-        publishMessage(Double.toString(reading));
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            state = "stopping";
-        }
-
-    }
-
+    //generate random cabin pressure change readings
     public double generateRandomPressureChange() {
         // Set the minimum and maximum normal cabin pressure changes
         double minPressureChange = -1.5;
@@ -110,12 +90,29 @@ public class CabinPressureSensor implements Runnable {
         return pressure;
     }
 
+    //handles the landing of the plane, generates decreasing sensor values until 4.3 (standard sea level cabin pressure)
+    public void generateLandingReadings() {
+        double reading = generateDecreasingPressureChange();
+        publishMessage(Double.toString(reading));
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            state = "stopping";
+        }
+
+    }
+
+    // Generates a decreasing cabin pressure based on the current cabin pressure of the plane
     public double generateDecreasingPressureChange() {
         double pressureDecrease = (new Random()).nextDouble(MAX_PRESSURE - MIN_PRESSURE) / (Plane.LANDING_DURATION - 3);
         pressure -= pressureDecrease;
         return Double.max(MIN_PRESSURE, pressure);
     }
 
+    
+    
+    
+    // Producer to send messages to FC
     public void publishMessage(String msg) {
         try {
             sensorsChannel.basicPublish(Exchanges.SENSOR.getName(), RoutingKeys.CABIN.getKey(), null, msg.getBytes());

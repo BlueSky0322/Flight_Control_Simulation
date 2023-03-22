@@ -7,11 +7,7 @@ package Plane.Actuators;
 import Plane.Components.Engine;
 import Plane.Connections.ActuatorQueues;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-
 import java.io.IOException;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,37 +16,15 @@ import java.util.logging.Logger;
  */
 public class EngineActuator implements Runnable {
 
-    private ConnectionFactory factory;
-    private Connection connection;
     private Channel actuatorChannel;
     private Channel emergencyChannel;
     private static volatile boolean cabinPressureLossEvent = false;
     private static String state = "normal";
 
-    public static void pauseActuator() {
-        cabinPressureLossEvent = true;
-        System.out.println("[x] [ACTUATOR-EAE] Pausing ENGINE Actuator...");
-    }
-
-    public static void unpauseActuator() {
-        cabinPressureLossEvent = false;
-        System.out.println("[x] [ACTUATOR-EAE] Resuming ENGINE Actuator...");
-    }
-
     public EngineActuator() {
-        try {
-            factory = new ConnectionFactory();
-            connection = factory.newConnection();
-            actuatorChannel = connection.createChannel();
-            emergencyChannel = connection.createChannel();
-            System.out.println("[*] [ACTUATOR-EAE] ENGINE ACTUATOR: Started successfully.");
-            //ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-            //executor.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
-        } catch (IOException ex) {
-            Logger.getLogger(EngineActuator.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (TimeoutException ex) {
-            Logger.getLogger(EngineActuator.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        actuatorChannel = ActuatorUtils.createNormalChannel();
+        emergencyChannel = ActuatorUtils.createEmergencyChannel();
+        System.out.println("[*] [ACTUATOR-EAE] ENGINE ACTUATOR: Started successfully.");
     }
 
     @Override
@@ -80,6 +54,8 @@ public class EngineActuator implements Runnable {
 
     }
 
+    //CONSUMER FOR CORRECTIONS SENT FROM FC    
+    //receive landing readings onl
     private void receiveLandingReading() {
         try {
             actuatorChannel.basicConsume(
@@ -98,6 +74,18 @@ public class EngineActuator implements Runnable {
         }
     }
 
+    //set udpated engine fields
+    private void handleLandingReading(int throttleCorrection) {
+
+        int newThrottle = Engine.getThrottle() + throttleCorrection;
+        Engine.setThrottle(Math.max(0, newThrottle));
+
+        System.out.println(
+                "{LANDING} [ACTUATOR-EAE] Current Engine Readings: THROTTLE ("
+                + Engine.getThrottle() + "%)");
+    }
+
+    //receive normal readings
     public void receiveReading() {
         try {
             actuatorChannel.basicConsume(
@@ -116,16 +104,7 @@ public class EngineActuator implements Runnable {
         }
     }
 
-    private void handleLandingReading(int throttleCorrection) {
-
-        int newThrottle = Engine.getThrottle() + throttleCorrection;
-        Engine.setThrottle(Math.max(0, newThrottle));
-
-        System.out.println(
-                "{LANDING} [ACTUATOR-EAE] Current Engine Readings: THROTTLE ("
-                + Engine.getThrottle() + "%)");
-    }
-
+    //set udpated engine fields
     public void handleReading(int throttleCorrection) {
         System.out.println("[ACTUATOR-EAE] Received correction from [FC] (" + throttleCorrection + "%)");
 
@@ -142,6 +121,7 @@ public class EngineActuator implements Runnable {
         System.out.println("[ACTUATOR-EAE] Current Engine Readings: THROTTLE (" + Engine.getThrottle() + "%)");
     }
 
+    //receive emergency readings for cabin pressure loss event
     public void receiveEmergencyReading() {
         try {
             emergencyChannel.basicConsume(ActuatorQueues.ENGINES_TEMP.getName(), true, (consumerTag, msg) -> {
@@ -157,6 +137,18 @@ public class EngineActuator implements Runnable {
         } catch (IOException ex) {
             Logger.getLogger(EngineActuator.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+    
+    //pausing the actuators
+    public static void pauseActuator() {
+        cabinPressureLossEvent = true;
+        System.out.println("[x] [ACTUATOR-EAE] Pausing ENGINE Actuator...");
+    }
+
+    //resuming the actuators
+    public static void unpauseActuator() {
+        cabinPressureLossEvent = false;
+        System.out.println("[x] [ACTUATOR-EAE] Resuming ENGINE Actuator...");
     }
 
 }

@@ -6,17 +6,8 @@ package Plane.Actuators;
 
 import Plane.Components.WingFlap;
 import Plane.Connections.ActuatorQueues;
-import Plane.Connections.ConnectionManager;
-import Plane.Connections.Exchanges;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-
 import java.io.IOException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,33 +16,15 @@ import java.util.logging.Logger;
  */
 public class WingActuator implements Runnable {
 
-    private ConnectionFactory factory;
-    private Connection connection;
     private Channel actuatorChannel;
     private Channel emergencyChannel;
     private static volatile boolean cabinPressureLossEvent = false;
     private static String state = "normal";
 
-    public static void pauseActuator() {
-        cabinPressureLossEvent = true;
-        System.out.println("[x] [ACTUATOR-WAWF] Pausing WING Actuator...");
-    }
-
-    public static void unpauseActuator() {
-        cabinPressureLossEvent = false;
-        System.out.println("[x] [ACTUATOR-WAWF] Resuming WING Actuator...");
-    }
-
     public WingActuator() {
-        try {
-            factory = new ConnectionFactory();
-            connection = factory.newConnection();
-            actuatorChannel = connection.createChannel();
-            emergencyChannel = connection.createChannel();
-            System.out.println("[*] [ACTUATOR-WAWF] WING ACTUATOR: Started successfully.");
-        } catch (IOException | TimeoutException ex) {
-            Logger.getLogger(WingActuator.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        actuatorChannel = ActuatorUtils.createNormalChannel();
+        emergencyChannel = ActuatorUtils.createEmergencyChannel();
+        System.out.println("[*] [ACTUATOR-WAWF] WING ACTUATOR: Started successfully.");
     }
 
     @Override
@@ -80,6 +53,8 @@ public class WingActuator implements Runnable {
         }
     }
 
+    //CONSUMER FOR CORRECTIONS SENT FROM FC    
+    //receive landing readings only
     private void receiveLandingReading() {
         try {
             actuatorChannel.basicConsume(ActuatorQueues.WING_FLAPS.getName(), true, (x, msg) -> {
@@ -99,6 +74,7 @@ public class WingActuator implements Runnable {
         }
     }
 
+    //receive normal readings
     public void receiveReading() {
         try {
             actuatorChannel.basicConsume(ActuatorQueues.WING_FLAPS.getName(), true, (x, msg) -> {
@@ -118,6 +94,7 @@ public class WingActuator implements Runnable {
         }
     }
 
+    //receive emergency readings for cabin pressure loss event
     public void receiveEmergencyReading() {
         try {
             emergencyChannel.basicConsume(
@@ -139,5 +116,17 @@ public class WingActuator implements Runnable {
             Logger.getLogger(WingActuator.class.getName())
                     .log(Level.SEVERE, null, ex);
         }
+    }
+
+    //pausing the actuators
+    public static void pauseActuator() {
+        cabinPressureLossEvent = true;
+        System.out.println("[x] [ACTUATOR-WAWF] Pausing WING Actuator...");
+    }
+
+    //resuming the actuators
+    public static void unpauseActuator() {
+        cabinPressureLossEvent = false;
+        System.out.println("[x] [ACTUATOR-WAWF] Resuming WING Actuator...");
     }
 }

@@ -5,16 +5,12 @@
 package Plane.Main;
 
 import Plane.Actuators.*;
-import Plane.Connections.ConnectionManager;
 import Plane.FC.FlightController;
 import Plane.Sensors.AltitudeSensor;
 import Plane.Sensors.CabinPressureSensor;
 import Plane.Sensors.SpeedDirectionSensor;
 import Plane.Sensors.WeatherSensor;
-import Plane.Utils.WeatherCondition;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import Plane.Sensors.WeatherCondition;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,7 +18,7 @@ import java.util.logging.Logger;
  * @author ryann
  */
 public class Plane {
-
+    //all sensors, FC, and actuators are declared as Thread objects
     private static Thread altThread;
     private static Thread cpsThread;
     private static Thread sdsThread;
@@ -34,17 +30,18 @@ public class Plane {
     private static Thread fcThread;
     private static Thread lgThread;
 
+    
+    //initial values of the plane
     public static int currentAltitude = 33000; //normal cruising currentAltitude of planes
     public static double currentPressure = 8.9; //normal cabin pressures
     public static int currentSpeed = 300; // normal cruising speed in knots
     public static int currentDirection = 90; // normal direction in degrees (eastward)
     public static WeatherCondition currentWeather = WeatherCondition.CLEAR_SKY;// normal weather condition
-    public static final int FLYING_DURATION = 60;
+    
+    
+    //simulation settings
+    public static final int FLYING_DURATION = 20;
     public static final int LANDING_DURATION = 5;
-
-    public Plane() {
-
-    }
 
     public static void main(String[] args) {
         Plane plane = new Plane();
@@ -71,7 +68,7 @@ public class Plane {
     }
 
     public void start() {
-
+        //initialising all threads
         Plane.altThread = new Thread(new AltitudeSensor());
         Plane.cpsThread = new Thread(new CabinPressureSensor());
         Plane.sdsThread = new Thread(new SpeedDirectionSensor());
@@ -83,6 +80,7 @@ public class Plane {
         Plane.fcThread = new Thread(new FlightController());
         Plane.lgThread = new Thread(new LandingGearActuator());
 
+        //starting all threads
         Plane.altThread.start();
         Plane.cpsThread.start();
         Plane.sdsThread.start();
@@ -96,6 +94,7 @@ public class Plane {
     }
 
     public static void interrupt() {
+        //interrupting all threads
         Plane.altThread.interrupt();
         Plane.cpsThread.interrupt();
         Plane.sdsThread.interrupt();
@@ -108,6 +107,8 @@ public class Plane {
         Plane.lgThread.interrupt();
     }
 
+    
+    //getters and setters
     public static int getCurrentAltitude() {
         return currentAltitude;
     }

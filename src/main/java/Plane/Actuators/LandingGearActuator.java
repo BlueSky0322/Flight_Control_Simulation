@@ -1,44 +1,21 @@
 package Plane.Actuators;
 
 import Plane.Components.LandingGear;
-import Plane.Components.OxygenMask;
 import Plane.Connections.ActuatorQueues;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-
 import java.io.IOException;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class LandingGearActuator implements Runnable {
 
-    private ConnectionFactory factory;
-    private Connection connection;
     private Channel actuatorChannel;
     private static String state = "normal";
     private static volatile boolean landingEvent = false;
 
-    public static void deployLandingGear() {
-        landingEvent = true;
-        System.out.println("[x] [ACTUATOR-LGALG] Initializing LANDING_GEAR Actuator...");
-    }
-
-    public static void stopDeployLandingGear() {
-        landingEvent = false;
-    }
-
     public LandingGearActuator() {
-        try {
-            factory = new ConnectionFactory();
-            connection = factory.newConnection();
-            actuatorChannel = connection.createChannel();
-            //ConnectionManager.declareExchange(Exchanges.ACTUATOR.getName(), actuatorChannel);
-            System.out.println("[*] [ACTUATOR-LGALG] LANDING GEAR ACTUATOR: Started successfully.");
-        } catch (IOException | TimeoutException ex) {
-            Logger.getLogger(OxygenMaskActuator.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        actuatorChannel = ActuatorUtils.createNormalChannel();
+        System.out.println("[*] [ACTUATOR-LGALG] LANDING GEAR ACTUATOR: Started successfully.");
     }
 
     @Override
@@ -70,6 +47,19 @@ public class LandingGearActuator implements Runnable {
 
     }
 
+    //start landing gear actuator
+    public static void deployLandingGear() {
+        landingEvent = true;
+        System.out.println("[x] [ACTUATOR-LGALG] Initializing LANDING_GEAR Actuator...");
+    }
+
+    //stop landing gear actuator (deploy once)
+    public static void stopDeployLandingGear() {
+        landingEvent = false;
+    }
+    
+    //CONSUMER FOR CORRECTIONS SENT FROM FC  
+    //receive landing readings only
     private void receiveLandingReading() {
         try {
             actuatorChannel.basicConsume(ActuatorQueues.LANDING_GEAR.getName(), true, (x, msg) -> {
@@ -83,7 +73,6 @@ public class LandingGearActuator implements Runnable {
         } catch (IOException ex) {
             Logger.getLogger(OxygenMaskActuator.class.getName()).log(Level.SEVERE, null, ex);
         }
-        //LandingGear.setIsDeployed(true);
     }
 
 }

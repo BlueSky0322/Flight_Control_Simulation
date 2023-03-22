@@ -71,7 +71,7 @@ public class ConnectionManager {
             channel.queueDeclare(ActuatorQueues.WING_FLAPS_TEMP.getName(), true, false, false, null);
             channel.queueDeclare(ActuatorQueues.TAIL_FLAPS_TEMP.getName(), true, false, false, null);
             channel.queueDeclare(ActuatorQueues.OXYGEN_MASKS.getName(), true, false, false, null);
-       } catch (IOException ex) {
+        } catch (IOException ex) {
             Logger.getLogger(ConnectionManager.class.getName()).log(Level.SEVERE, null, ex);
         }
 
@@ -95,8 +95,7 @@ public class ConnectionManager {
             channel.queueBind(ActuatorQueues.ENGINES.getName(), Exchanges.ACTUATOR.getName(), RoutingKeys.ENGINES.getKey());
             channel.queueBind(ActuatorQueues.LANDING_GEAR.getName(), Exchanges.ACTUATOR.getName(), RoutingKeys.LANDING_GEAR.getKey());
 
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             Logger.getLogger(ConnectionManager.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
@@ -112,14 +111,20 @@ public class ConnectionManager {
         }
     }
 
-    public static void purgeQueues(Channel sensorsChannel, Channel actuatorsChannel) {
+    public static void purgeSensorQueues(Channel sensorsChannel) {
         try {
             //purge sensor queues
             sensorsChannel.queuePurge(SensorQueues.ALTITUDE.getName());
             sensorsChannel.queuePurge(SensorQueues.CABIN.getName());
             sensorsChannel.queuePurge(SensorQueues.SPEED_DIRECTION.getName());
             sensorsChannel.queuePurge(SensorQueues.WEATHER.getName());
+        } catch (IOException ex) {
+            Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 
+    public static void purgeActuatorQueues(Channel actuatorsChannel) {
+        try {
             //purge actuator queues
             actuatorsChannel.queuePurge(ActuatorQueues.WING_FLAPS.getName());
             actuatorsChannel.queuePurge(ActuatorQueues.TAIL_FLAPS.getName());
@@ -129,52 +134,4 @@ public class ConnectionManager {
             Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-
-    public static void resetSensorQueues(Channel sensorsChannel) {
-        try {
-            sensorsChannel.queueUnbind(SensorQueues.ALTITUDE.getName(), Exchanges.SENSOR.getName(), RoutingKeys.ALTITUDE.getKey());
-            sensorsChannel.queueUnbind(SensorQueues.CABIN.getName(), Exchanges.SENSOR.getName(), RoutingKeys.CABIN.getKey());
-            sensorsChannel.queueUnbind(SensorQueues.SPEED_DIRECTION.getName(), Exchanges.SENSOR.getName(), RoutingKeys.SPEED_DIRECTION.getKey());
-            sensorsChannel.queueUnbind(SensorQueues.WEATHER.getName(), Exchanges.SENSOR.getName(), RoutingKeys.WEATHER.getKey());
-
-            sensorsChannel.queueDelete(SensorQueues.ALTITUDE.getName());
-            sensorsChannel.queueDelete(SensorQueues.CABIN.getName());
-            sensorsChannel.queueDelete(SensorQueues.SPEED_DIRECTION.getName());
-            sensorsChannel.queueDelete(SensorQueues.WEATHER.getName());
-        } catch (IOException ex) {
-            Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
-    public static void resetActuatorQueues(Channel actuatorsChannel) {
-        try {
-            actuatorsChannel.queueUnbind(ActuatorQueues.WING_FLAPS.getName(), Exchanges.ACTUATOR.getName(), RoutingKeys.WING_FLAPS.getKey());
-            actuatorsChannel.queueUnbind(ActuatorQueues.TAIL_FLAPS.getName(), Exchanges.ACTUATOR.getName(), RoutingKeys.TAIL_FLAPS.getKey());
-            actuatorsChannel.queueUnbind(ActuatorQueues.ENGINES.getName(), Exchanges.ACTUATOR.getName(), RoutingKeys.ENGINES.getKey());
-            
-            actuatorsChannel.queueDelete(ActuatorQueues.WING_FLAPS.getName());
-            actuatorsChannel.queueDelete(ActuatorQueues.TAIL_FLAPS.getName());
-            actuatorsChannel.queueDelete(ActuatorQueues.ENGINES.getName());
-        } catch (IOException ex) {
-            Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
-    public static void resetEmergencyQueues(Channel emergencyChannel) {
-        try {
-            emergencyChannel.queueUnbind(ActuatorQueues.WING_FLAPS_TEMP.getName(), Exchanges.EMERGENCY.getName(), RoutingKeys.WING_FLAPS_TEMP.getKey());
-            emergencyChannel.queueUnbind(ActuatorQueues.TAIL_FLAPS_TEMP.getName(), Exchanges.EMERGENCY.getName(), RoutingKeys.TAIL_FLAPS_TEMP.getKey());
-            emergencyChannel.queueUnbind(ActuatorQueues.ENGINES_TEMP.getName(), Exchanges.EMERGENCY.getName(), RoutingKeys.ENGINES_TEMP.getKey());
-            emergencyChannel.queueUnbind(ActuatorQueues.OXYGEN_MASKS.getName(), Exchanges.EMERGENCY.getName(), RoutingKeys.OXYGEN_MASKS.getKey());
-
-
-            emergencyChannel.queueDelete(ActuatorQueues.WING_FLAPS_TEMP.getName());
-            emergencyChannel.queueDelete(ActuatorQueues.TAIL_FLAPS_TEMP.getName());
-            emergencyChannel.queueDelete(ActuatorQueues.ENGINES_TEMP.getName());
-            emergencyChannel.queueDelete(ActuatorQueues.OXYGEN_MASKS.getName());
-        } catch (IOException ex) {
-            Logger.getLogger(Plane.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
 }
